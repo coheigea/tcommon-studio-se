@@ -91,6 +91,8 @@ public final class ProjectManager {
 
     private Set<Object> updatedRemoteHandlerRecords;
 
+    private boolean isFirstCreateRepository = false;
+
     private ProjectManager() {
         beforeLogonRecords = new HashSet<String>();
         logonRecords = new HashSet<String>();
@@ -778,4 +780,12 @@ public final class ProjectManager {
 		}
 		return null;
 	}
+
+    public boolean isFirstCreateRepository() {
+        return isFirstCreateRepository;
+    }
+
+    public void setFirstCreateRepository(boolean isFirstCreateRepository) {
+        this.isFirstCreateRepository = isFirstCreateRepository;
+    }
 }
