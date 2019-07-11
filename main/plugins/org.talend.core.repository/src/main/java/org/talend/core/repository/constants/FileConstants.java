@@ -27,6 +27,16 @@ public interface FileConstants {
 
     String PROJECTSETTING_FILE_NAME = "project.settings"; //$NON-NLS-1$
 
+    String ORG_TALEND_REPOSITORY_PREFS = "org.talend.repository.prefs";//$NON-NLS-1$
+
+    String ORG_TALEND_DESIGNER_MAVEN_PREFS = "org.talend.designer.maven.prefs";//$NON-NLS-1$
+
+    String POMS = "poms";//$NON-NLS-1$
+
+    String ROUTINES_POM = "code/routines/pom.xml";//$NON-NLS-1$
+
+    String POM_FILE = "pom.xml";//$NON-NLS-1$
+
     String RELATIONSHIP_FILE_NAME = "relationship.index"; //$NON-NLS-1$
 
     String COMPONENT_FILE_NAME = "component.index"; //$NON-NLS-1$
