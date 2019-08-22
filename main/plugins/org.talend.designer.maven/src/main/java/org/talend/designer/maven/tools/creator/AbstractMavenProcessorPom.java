@@ -45,6 +45,7 @@ import org.talend.core.model.utils.JavaResourcesHelper;
 import org.talend.core.runtime.maven.MavenArtifact;
 import org.talend.core.runtime.maven.MavenConstants;
 import org.talend.core.runtime.maven.MavenUrlHelper;
+import org.talend.core.runtime.process.TalendProcessArgumentConstant;
 import org.talend.core.runtime.projectsetting.IProjectSettingTemplateConstants;
 import org.talend.core.runtime.repository.build.IMavenPomCreator;
 import org.talend.core.ui.ITestContainerProviderService;
@@ -269,6 +270,7 @@ public abstract class AbstractMavenProcessorPom extends CreateMavenBundleTemplat
 
     protected void addChildrenDependencies(final List<Dependency> dependencies) {
         String parentId = getJobProcessor().getProperty().getId();
+
         final Set<JobInfo> clonedChildrenJobInfors = getJobProcessor().getBuildFirstChildrenJobs();
         for (JobInfo jobInfo : clonedChildrenJobInfors) {
             if (jobInfo.getFatherJobInfo() != null && jobInfo.getFatherJobInfo().getJobId().equals(parentId)) {
@@ -284,6 +286,10 @@ public abstract class AbstractMavenProcessorPom extends CreateMavenBundleTemplat
                     property = jobInfo.getProcessItem().getProperty();
                     groupId = PomIdsHelper.getJobGroupId(property);
                     artifactId = PomIdsHelper.getJobArtifactId(jobInfo);
+                    if ("OSGI".equals(property.getAdditionalProperties().get(TalendProcessArgumentConstant.ARG_BUILD_TYPE))) {
+                        artifactId = artifactId + "-bundle";
+                    }
+
                     version = PomIdsHelper.getJobVersion(property);
                     // try to get the pom version of children job and load from the pom file.
                     String childPomFileName = PomUtil.getPomFileName(jobInfo.getJobName(), jobInfo.getJobVersion());

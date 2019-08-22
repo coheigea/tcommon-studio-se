@@ -1073,9 +1073,11 @@ public class ProcessorUtilities {
             JobInfo parentJob = jobInfo.getFatherJobInfo();
             if (parentJob != null && (parentJob.getProcessor() != null)) {
                 for (JobInfo subJob : parentJob.getProcessor().getBuildChildrenJobs()) {
+
                     if (ProcessUtils.isSameProperty(subJob.getJobId(), jobInfo.getJobId(), false)) {
                         subJob.setProcessor(processor);
                     }
+
                 }
             }
             if (!timerStarted) {
@@ -1233,10 +1235,9 @@ public class ProcessorUtilities {
             IFolder srcFolder = processor.getTalendJavaProject().getProject().getFolder(codePath);
             String jobPackageFolder = JavaResourcesHelper.getJobClassPackageFolder(currentProcess);
             for (IResource resource : srcFolder.members()) {
-                if (resource.getProjectRelativePath().toPortableString().endsWith(jobPackageFolder)) {
-                    break;
+                if (!resource.getProjectRelativePath().toPortableString().endsWith(jobPackageFolder)) {
+                    resource.delete(true, progressMonitor);
                 }
-                resource.delete(true, progressMonitor);
             }
         } catch (CoreException e) {
             ExceptionHandler.process(e);
@@ -2026,7 +2027,15 @@ public class ProcessorUtilities {
     public static String[] getCommandLine(String targetPlatform, boolean skipClasspathJar, boolean externalUse,
             String processId, String contextName, int statisticPort, int tracePort, String... codeOptions)
             throws ProcessorException {
+        return getCommandLine(targetPlatform, skipClasspathJar, externalUse,
+                processId, contextName, statisticPort, tracePort, false, codeOptions);
+    }
 
+    //ignoreCustomJVMSetting mean will generate the java command without the job VM setting in studio "Run job" setting and studio preferences "Run/Debug" setting
+    //only use for TDI-42443 in tRunJob
+    public static String[] getCommandLine(String targetPlatform, boolean skipClasspathJar, boolean externalUse,
+            String processId, String contextName, int statisticPort, int tracePort, boolean ignoreCustomJVMSetting, String... codeOptions)
+            throws ProcessorException {
         IProcessor processor = findProcessorFromJobList(processId, contextName, null);
         if (processor != null && targetPlatform.equals(processor.getTargetPlatform())) {
             if (processor.isProcessUnloaded()) {
@@ -2035,7 +2044,7 @@ public class ProcessorUtilities {
             boolean oldSkipClasspathJar = processor.isSkipClasspathJar();
             processor.setSkipClasspathJar(skipClasspathJar);
             try {
-                return processor.getCommandLine(true, externalUse, statisticPort, tracePort, codeOptions);
+                return processor.getCommandLine(true, externalUse, statisticPort, tracePort, ignoreCustomJVMSetting, codeOptions);
             } finally {
                 processor.setSkipClasspathJar(oldSkipClasspathJar);
             }
@@ -2053,7 +2062,7 @@ public class ProcessorUtilities {
         }
         // because all jobs are based one new way, set the flag "oldBuildJob" to false.
         return getCommandLine(false, skipClasspathJar, targetPlatform, externalUse, process,
-                selectedProcessItem.getProperty(), contextName, true, statisticPort, tracePort, codeOptions);
+                selectedProcessItem.getProperty(), contextName, true, statisticPort, tracePort, ignoreCustomJVMSetting, codeOptions);
     }
 
     /**
@@ -2127,6 +2136,14 @@ public class ProcessorUtilities {
     public static String[] getCommandLine(boolean oldBuildJob, boolean skipClasspathJar, String targetPlatform,
             boolean externalUse, IProcess currentProcess, Property property, String contextName, boolean needContext,
             int statisticPort, int tracePort, String... codeOptions) throws ProcessorException {
+        return getCommandLine(oldBuildJob, skipClasspathJar, targetPlatform,
+                externalUse, currentProcess, property, contextName, needContext,
+                statisticPort, tracePort, false, codeOptions);
+    }
+    
+    private static String[] getCommandLine(boolean oldBuildJob, boolean skipClasspathJar, String targetPlatform,
+            boolean externalUse, IProcess currentProcess, Property property, String contextName, boolean needContext,
+            int statisticPort, int tracePort, boolean ignoreCustomJVMSetting, String... codeOptions) throws ProcessorException {
         if (currentProcess == null) {
             return new String[] {};
         }
@@ -2139,7 +2156,7 @@ public class ProcessorUtilities {
         processor.setSkipClasspathJar(skipClasspathJar);
         processor.setTargetPlatform(targetPlatform);
         processor.setOldBuildJob(oldBuildJob);
-        return processor.getCommandLine(needContext, externalUse, statisticPort, tracePort, codeOptions);
+        return processor.getCommandLine(needContext, externalUse, statisticPort, tracePort, ignoreCustomJVMSetting, codeOptions);
     }
 
     public static String[] getCommandLine(boolean oldBuildJob, String targetPlatform, boolean externalUse,
@@ -2588,15 +2605,32 @@ public class ProcessorUtilities {
         return doSupportDynamicHadoopConfLoading(property) && !isExportAsOSGI();
     }
 
-    public static boolean isEsbJob(String processId, String version) {
-        return esbJobs.contains(esbJobKey(processId, version));
+    public static boolean isEsbJob(IProcess process) {
+
+        if (process instanceof IProcess2) {
+            Set<JobInfo> infos = ProcessorUtilities.getChildrenJobInfo(((IProcess2) process).getProperty().getItem(), false);
+
+            for (JobInfo jobInfo : infos) {
+                ProcessType processType = jobInfo.getProcessItem().getProcess();
+                EList<NodeType> nodes = processType.getNode();
+                for (NodeType nodeType : nodes) {
+                    if (isEsbComponentName(nodeType.getComponentName())) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        return false;
     }
 
     private static void addEsbJob(JobInfo jobInfo) {
         if (esbJobs.contains(esbJobKey(jobInfo.getJobId(), jobInfo.getJobVersion()))) {
             return;
         }
-
+        
         esbJobs.add(esbJobKey(jobInfo.getJobId(), jobInfo.getJobVersion()));
         if (jobInfo.getFatherJobInfo() != null) {
             addEsbJob(jobInfo.getFatherJobInfo());
@@ -2628,5 +2662,4 @@ public class ProcessorUtilities {
     public static boolean isNeedProjectProcessId(String componentName) {
         return "tRunJob".equalsIgnoreCase(componentName) || "cTalendJob".equalsIgnoreCase(componentName);
     }
-
 }

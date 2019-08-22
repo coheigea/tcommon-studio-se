@@ -406,6 +406,38 @@ public class ProjectDataJsonProvider {
         return null;
     }
 
+    public static boolean hasFilledProjectSettingFile(org.talend.core.model.general.Project project) throws PersistenceException {
+        FileInputStream InputStream = null;
+        boolean hasFilled = false;
+        try {
+            IProject physProject = ResourceUtils.getProject(project);
+            IPath location = physProject.getLocation();
+            File file = ProjectDataJsonProvider.getLoadingConfigurationFile(location, FileConstants.PROJECTSETTING_FILE_NAME);
+            if (file != null && file.exists()) {
+                InputStream = new FileInputStream(file);
+                ProjectSettings projectSetting = new ObjectMapper().readValue(new FileInputStream(file), ProjectSettings.class);
+                if (projectSetting != null) {
+                    ImplicitContextSettingJson implicitContextSettingJson = projectSetting.getImplicitContextSettingJson();
+                    if (implicitContextSettingJson != null) {
+                        ParametersTypeJson parametersTypeJson = implicitContextSettingJson.getParametersTypeJson();
+                        if (parametersTypeJson != null) {
+                            List<ElementParameterTypeJson> elementParameters = parametersTypeJson.getElementParameters();
+                            if (elementParameters.size() > 0) {
+                                hasFilled = true;
+                            }
+                        }
+
+                    }
+                }
+            }
+        } catch (Exception e1) {
+            throw new PersistenceException(e1);
+        } finally {
+            closeInputStream(InputStream);
+        }
+        return hasFilled;
+    }
+
     protected static ImplicitContextSettingJson getImplicitContextSettingJson(ImplicitContextSettings implicitContextSettings) {
         if (implicitContextSettings != null) {
             ImplicitContextSettingJson implicitContextSettingJson = new ImplicitContextSettingJson(implicitContextSettings);

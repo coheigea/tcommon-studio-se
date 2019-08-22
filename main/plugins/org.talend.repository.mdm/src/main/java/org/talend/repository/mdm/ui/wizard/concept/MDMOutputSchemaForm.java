@@ -157,6 +157,14 @@ public class MDMOutputSchemaForm extends AbstractMDMFileStepForm {
      */
     private MetadataTable tempMetadataTable;
 
+    private AddTreeNodeButton addTreeNodeBtn;
+
+    private RemoveTreeNodeButton removeNodeBtn;
+
+    private MoveUpTreeNodeButton moveUpBtn;
+
+    private MoveDownTreeNodeButton moveDown;
+
     public MDMOutputSchemaForm(Composite parent, ConnectionItem connectionItem, MetadataTable metadataTable, Concept concept,
             WizardPage wizardPage, boolean creation) {
         super(parent, connectionItem);
@@ -169,7 +177,13 @@ public class MDMOutputSchemaForm extends AbstractMDMFileStepForm {
 
     @Override
     protected void adaptFormToReadOnly() {
-
+        boolean enabled = !isReadOnly();
+        schemaButton.setEnabled(enabled);
+        addTreeNodeBtn.removeTreeListeners();
+        removeNodeBtn.removeTreeListeners();
+        moveUpBtn.removeTreeListeners();
+        moveDown.removeTreeListeners();
+        linker.setReadOnly(isReadOnly());
     }
 
     @Override
@@ -399,17 +413,16 @@ public class MDMOutputSchemaForm extends AbstractMDMFileStepForm {
     }
 
     private void initToolBar(Composite parent) {
-        // tool buttons
         Composite toolBarComp = new Composite(parent, SWT.NONE);
         GridLayout layout = new GridLayout();
         layout.numColumns = 4;
         GridData data = new GridData(GridData.FILL_HORIZONTAL);
         toolBarComp.setLayout(layout);
         toolBarComp.setLayoutData(data);
-        AddTreeNodeButton addTreeNodeBtn = new AddTreeNodeButton(toolBarComp, this);
-        RemoveTreeNodeButton removeNodeBtn = new RemoveTreeNodeButton(toolBarComp, this);
-        MoveUpTreeNodeButton moveUpBtn = new MoveUpTreeNodeButton(toolBarComp, this);
-        MoveDownTreeNodeButton moveDown = new MoveDownTreeNodeButton(toolBarComp, this);
+        addTreeNodeBtn = new AddTreeNodeButton(toolBarComp, this);
+        removeNodeBtn = new RemoveTreeNodeButton(toolBarComp, this);
+        moveUpBtn = new MoveUpTreeNodeButton(toolBarComp, this);
+        moveDown = new MoveDownTreeNodeButton(toolBarComp, this);
     }
 
     private void createAction() {
@@ -1035,6 +1048,7 @@ public class MDMOutputSchemaForm extends AbstractMDMFileStepForm {
             String selectedEntity = null;
             if (wizardPage != null && wizardPage.getPreviousPage() instanceof MdmConceptWizardPage2) {
                 selectedEntity = ((MdmConceptWizardPage2) wizardPage.getPreviousPage()).getSelectedEntity();
+                getSelectedTreeNode(xsdFilePath, selectedEntity);
             }
             initXmlTreeData(selectedEntity);
             initSchemaTable();

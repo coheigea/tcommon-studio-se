@@ -33,7 +33,10 @@ import org.apache.maven.artifact.repository.ArtifactRepository;
 import org.apache.maven.model.Activation;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
+import org.apache.maven.model.Plugin;
+import org.apache.maven.model.PluginExecution;
 import org.apache.maven.model.Profile;
+import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.runtime.CoreException;
@@ -896,6 +899,42 @@ public class CreateMavenJobPom extends AbstractMavenProcessorPom {
         } catch (CoreException e) {
             ExceptionHandler.process(e);
         }
+    }
+
+    protected Plugin addSkipDockerMavenPlugin() {
+        Plugin plugin = new Plugin();
+
+        plugin.setGroupId("io.fabric8");
+        plugin.setArtifactId("fabric8-maven-plugin");
+        plugin.setVersion("4.0.0");
+
+        Xpp3Dom skip = new Xpp3Dom("skip");
+        // skip.setValue("${docker.skip}");
+        skip.setValue("true");
+
+        Xpp3Dom configuration = new Xpp3Dom("configuration");
+        configuration.addChild(skip);
+
+        List<PluginExecution> pluginExecutions = new ArrayList<PluginExecution>();
+        PluginExecution pluginExecutionStart = new PluginExecution();
+        pluginExecutionStart.setId("start");
+        pluginExecutionStart.setPhase("none");
+        pluginExecutionStart.setConfiguration(configuration);
+
+        pluginExecutions.add(pluginExecutionStart);
+
+        PluginExecution pluginExecutionPushImage = new PluginExecution();
+        pluginExecutionPushImage.setId("push-image");
+        pluginExecutionPushImage.setPhase("none");
+        pluginExecutionPushImage.setConfiguration(configuration);
+
+        pluginExecutions.add(pluginExecutionPushImage);
+
+        plugin.setExecutions(pluginExecutions);
+        plugin.setConfiguration(configuration);
+
+        return plugin;
+
     }
 
 }

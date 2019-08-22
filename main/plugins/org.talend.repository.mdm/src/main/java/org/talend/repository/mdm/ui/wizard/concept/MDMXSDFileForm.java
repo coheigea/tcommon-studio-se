@@ -154,6 +154,12 @@ public class MDMXSDFileForm extends AbstractMDMFileStepForm {
         setupForm();
     }
 
+    @Override
+    protected void adaptFormToReadOnly() {
+        loopTableEditorView.setReadOnly(isReadOnly());
+        fieldsTableEditorView.setReadOnly(isReadOnly());
+    }
+
     /**
      *
      * Initialize value, forceFocus first field.
@@ -191,11 +197,6 @@ public class MDMXSDFileForm extends AbstractMDMFileStepForm {
         }
         fieldsModel.setConcept(concept.getConceptTargets());
         fieldsTableEditorView.getTableViewerCreator().layout();
-
-        if (isContextMode()) {
-            adaptFormToEditable();
-        }
-
     }
 
     @Override
@@ -621,11 +622,6 @@ public class MDMXSDFileForm extends AbstractMDMFileStepForm {
                 this.linker.createLinks();
             }
             checkFilePathAndManageIt();
-
-            if (isContextMode()) {
-                adaptFormToEditable();
-            }
-
         }
     }
 

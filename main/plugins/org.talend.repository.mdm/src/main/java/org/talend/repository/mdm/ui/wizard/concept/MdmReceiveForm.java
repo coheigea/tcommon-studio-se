@@ -39,6 +39,8 @@ import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.events.VerifyEvent;
+import org.eclipse.swt.events.VerifyListener;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
@@ -139,8 +141,6 @@ public class MdmReceiveForm extends AbstractMDMFileStepForm {
 
     private boolean creation;
 
-    private boolean populated;
-
     /**
      * Constructor to use by RCP Wizard.
      *
@@ -156,6 +156,21 @@ public class MdmReceiveForm extends AbstractMDMFileStepForm {
         this.concept = concept;
         this.creation = creation;
         setupForm();
+    }
+
+    @Override
+    protected void adaptFormToReadOnly() {
+        prefixCombo.addVerifyListener(new VerifyListener() {
+
+            @Override
+            public void verifyText(VerifyEvent e) {
+                e.doit = false;
+            }
+
+        });
+
+        loopTableEditorView.setReadOnly(isReadOnly());
+        fieldsTableEditorView.setReadOnly(isReadOnly());
     }
 
     /**
@@ -202,11 +217,6 @@ public class MdmReceiveForm extends AbstractMDMFileStepForm {
         } else {
             prefixCombo.setText(getXPathPrefix(concept.getXPathPrefix()));
         }
-
-        if (isContextMode()) {
-            adaptFormToEditable();
-        }
-
     }
 
     @Override
@@ -637,10 +647,6 @@ public class MdmReceiveForm extends AbstractMDMFileStepForm {
     }
 
     private void populateTree() {
-        if (populated) {
-            return;
-        }
-        populated = true;
         String selectedEntity = null;
         if (wizardPage != null && wizardPage.getPreviousPage() instanceof MdmConceptWizardPage2) {
             selectedEntity = ((MdmConceptWizardPage2) wizardPage.getPreviousPage()).getSelectedEntity();
@@ -668,11 +674,6 @@ public class MdmReceiveForm extends AbstractMDMFileStepForm {
             this.linker.createLinks();
         }
         checkFilePathAndManageIt();
-
-        if (isContextMode()) {
-            adaptFormToEditable();
-        }
-
     }
 
     private void resetStatusIfNecessary(String selectedEntity) {

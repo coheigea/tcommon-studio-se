@@ -454,7 +454,18 @@ public class ImportExportHandlersManager {
                 return 0;
             }
         });
+        Collections.sort(checkedItemRecords, new Comparator<ImportItem>() {
 
+            @Override
+            public int compare(ImportItem o1, ImportItem o2) {
+                if (o1.getRepositoryType().getType().equals("SERVICES")) {
+                    return -1;
+                } else if (o2.getRepositoryType().getType().equals("SERVICES")) {
+                    return 1;
+                }
+                return 0;
+            }
+        });
         ImportCacheHelper importCacheHelper = ImportCacheHelper.getInstance();
         try {
             // cache

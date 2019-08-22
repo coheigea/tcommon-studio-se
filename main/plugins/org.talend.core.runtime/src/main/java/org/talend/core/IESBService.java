@@ -12,11 +12,14 @@
 // ============================================================================
 package org.talend.core;
 
+import java.util.List;
+
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IWorkbenchPart;
 import org.talend.core.model.process.INode;
 import org.talend.core.model.process.IProcess;
 import org.talend.core.model.properties.Item;
+import org.talend.core.model.properties.ProcessItem;
 import org.talend.core.model.properties.Property;
 import org.talend.core.model.repository.ERepositoryObjectType;
 import org.talend.core.utils.IXSDPopulationUtil;
@@ -47,6 +50,8 @@ public interface IESBService extends IService {
 
     public StringBuffer getAllTheJObNames(IRepositoryNode jobList);
 
+    public List<String> getSerivceRelatedJobIds(Item serviceItem);
+
     public void deleteOldRelation(String jobID);
 
     // public void setSelectedItem(Item, )
@@ -58,6 +63,8 @@ public interface IESBService extends IService {
     public boolean isServiceItem(int classifierID);
 
     public void copyDataServiceRelateJob(Item newItem);
+
+    public boolean isRESTService(ProcessItem processItem);
 
     public IXSDPopulationUtil getXSDPopulationUtil();
 

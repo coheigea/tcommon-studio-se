@@ -12,6 +12,7 @@
 // ============================================================================
 package org.talend.utils.string;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -92,10 +93,10 @@ public final class StringUtilities {
      */
     public static String getRandomString(int length) {
         String str = "abcdefghigklmnopkrstuvwxyzABCDEFGHIGKLMNOPQRSTUVWXYZ0123456789"; //$NON-NLS-1$
-        Random random = new Random();
-        StringBuffer sf = new StringBuffer();
+        Random random = new SecureRandom();
+        StringBuilder sf = new StringBuilder();
         for (int i = 0; i < length; i++) {
-            int number = random.nextInt(62);// 0~61
+            int number = random.nextInt(str.length());// str.length() is 62, so 0~61
             sf.append(str.charAt(number));
         }
         return sf.toString();
