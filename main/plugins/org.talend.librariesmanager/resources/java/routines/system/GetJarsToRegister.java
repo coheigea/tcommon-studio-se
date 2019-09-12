@@ -75,7 +75,6 @@ public class GetJarsToRegister {
             try (java.io.ObjectInputStream ois = new ObjectInputStream(new java.io.FileInputStream(crcMapPath))) {
                 crcMap = (java.util.Map<String, String>) ois.readObject();
             }
-            ois.close();
             classPathLine = addLibsPath(originalClassPathLine, crcMap);
         } else if (this.isOozieRuntime) {
             if (this.oozieClasspathLine != null) {
