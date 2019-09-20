@@ -917,9 +917,12 @@ public final class ProcessUtils {
                 for (ProjectReference ref : references) {
                     all.addAll(factory.getAll(new Project(ref.getReferencedProject()), beansType));
                 }
-                if (!all.isEmpty()) { // has bean
-                    return true;
-                }
+//                if (!all.isEmpty()) { // has bean
+//                    return true;
+//                }
+
+                return true;
+
             } catch (PersistenceException e) {
                 ExceptionHandler.process(e);
             }
