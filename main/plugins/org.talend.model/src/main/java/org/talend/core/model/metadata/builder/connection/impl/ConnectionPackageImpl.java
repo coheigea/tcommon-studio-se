@@ -5999,7 +5999,7 @@ public class ConnectionPackageImpl extends EPackageImpl implements ConnectionPac
         initEAttribute(getFTPConnection_UseFileNameEncoding(), ecorePackage.getEBoolean(), "UseFileNameEncoding", null, 0, 1,
                 FTPConnection.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED,
                 IS_ORDERED);
-        initEAttribute(getFTPConnection_Timeout(), ecorePackage.getELong(), "Timeout", null, 0, 1, FTPConnection.class,
+        initEAttribute(getFTPConnection_Timeout(), ecorePackage.getEString(), "Timeout", null, 0, 1, FTPConnection.class,
                 !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
         initEClass(brmsConnectionEClass, BRMSConnection.class, "BRMSConnection", !IS_ABSTRACT, !IS_INTERFACE,

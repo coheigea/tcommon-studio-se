@@ -572,12 +572,12 @@ public interface FTPConnection extends Connection {
      * </p>
      * <!-- end-user-doc -->
      * @return the value of the '<em>Timeout</em>' attribute.
-     * @see #setTimeout(long)
+     * @see #setTimeout(String)
      * @see org.talend.core.model.metadata.builder.connection.ConnectionPackage#getFTPConnection_Timeout()
      * @model
      * @generated
      */
-    long getTimeout();
+    String getTimeout();
 
     /**
      * Sets the value of the '{@link org.talend.core.model.metadata.builder.connection.FTPConnection#getTimeout <em>Timeout</em>}' attribute.
@@ -587,6 +587,6 @@ public interface FTPConnection extends Connection {
      * @see #getTimeout()
      * @generated
      */
-    void setTimeout(long value);
+    void setTimeout(String value);
 
 } // FTPConnection

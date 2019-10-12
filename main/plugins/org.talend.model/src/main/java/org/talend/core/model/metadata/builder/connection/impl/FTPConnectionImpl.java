@@ -457,7 +457,7 @@ public class FTPConnectionImpl extends ConnectionImpl implements FTPConnection {
      * @generated
      * @ordered
      */
-    protected static final long TIMEOUT_EDEFAULT = 0L;
+    protected static final String TIMEOUT_EDEFAULT = null;
 
     /**
      * The cached value of the '{@link #getTimeout() <em>Timeout</em>}' attribute.
@@ -467,7 +467,7 @@ public class FTPConnectionImpl extends ConnectionImpl implements FTPConnection {
      * @generated
      * @ordered
      */
-    protected long timeout = TIMEOUT_EDEFAULT;
+    protected String timeout = TIMEOUT_EDEFAULT;
 
     /**
      * <!-- begin-user-doc -->
@@ -927,7 +927,7 @@ public class FTPConnectionImpl extends ConnectionImpl implements FTPConnection {
      * <!-- end-user-doc -->
      * @generated
      */
-    public long getTimeout() {
+    public String getTimeout() {
         return timeout;
     }
 
@@ -936,8 +936,8 @@ public class FTPConnectionImpl extends ConnectionImpl implements FTPConnection {
      * <!-- end-user-doc -->
      * @generated
      */
-    public void setTimeout(long newTimeout) {
-        long oldTimeout = timeout;
+    public void setTimeout(String newTimeout) {
+        String oldTimeout = timeout;
         timeout = newTimeout;
         if (eNotificationRequired())
             eNotify(new ENotificationImpl(this, Notification.SET, ConnectionPackage.FTP_CONNECTION__TIMEOUT, oldTimeout,
@@ -1067,7 +1067,7 @@ public class FTPConnectionImpl extends ConnectionImpl implements FTPConnection {
             setUseFileNameEncoding((Boolean) newValue);
             return;
         case ConnectionPackage.FTP_CONNECTION__TIMEOUT:
-            setTimeout((Long) newValue);
+            setTimeout((String) newValue);
             return;
         }
         super.eSet(featureID, newValue);
@@ -1198,7 +1198,7 @@ public class FTPConnectionImpl extends ConnectionImpl implements FTPConnection {
         case ConnectionPackage.FTP_CONNECTION__USE_FILE_NAME_ENCODING:
             return useFileNameEncoding != USE_FILE_NAME_ENCODING_EDEFAULT;
         case ConnectionPackage.FTP_CONNECTION__TIMEOUT:
-            return timeout != TIMEOUT_EDEFAULT;
+            return TIMEOUT_EDEFAULT == null ? timeout != null : !TIMEOUT_EDEFAULT.equals(timeout);
         }
         return super.eIsSet(featureID);
     }
