@@ -133,7 +133,7 @@ public class StringUtils {
 	 * @param separatorChars
 	 * @return
 	 */
-    public static String[] splitNotRegex(String str, String separatorChars) {
+    public static String[] splitNotRegex(String str, String separatorChars, boolean checkSchema) {
 		if (str == null) {
             return null;
         }
@@ -170,13 +170,21 @@ public class StringUtils {
         int resultSize = substrings.size();
         String[] result = substrings.toArray(new String[resultSize]);
 
-        while (resultSize > 0 && substrings.get(resultSize - 1).equals("")) {
-            resultSize--;
-            // Setting data to null for empty string in last columns to keep original behavior
-            result[resultSize] = null;
+        //if we check the schema, we need to keep it as it is
+        if (!checkSchema) {
+            while (resultSize > 0 && substrings.get(resultSize - 1).equals("")) {
+                resultSize--;
+                // Setting data to null for empty string in last columns to keep original behavior
+                result[resultSize] = null;
+            }
         }
         return result;
-	}
+    }
+    
+
+    public static String[] splitNotRegex(String str, String separatorChars) {
+        return StringUtils.splitNotRegex(str, separatorChars, false);
+    }
 
 	/**
      * split SQL columns like that :
