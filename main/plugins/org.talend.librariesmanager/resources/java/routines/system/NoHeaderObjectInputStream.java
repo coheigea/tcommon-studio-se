@@ -44,7 +44,10 @@ public class NoHeaderObjectInputStream extends ObjectInputStream {
 
     public NoHeaderObjectInputStream(InputStream in, Class<?>... expectedTypes) throws IOException {
         this(in);
-        this.expectedTypes = expectedTypes;
+        if (expectedTypes != null) {
+            this.expectedTypes = new Class<?>[expectedTypes.length];
+            System.arraycopy(expectedTypes, 0, this.expectedTypes, 0, expectedTypes.length) ;
+        }
     }
 
     /**
@@ -67,8 +70,7 @@ public class NoHeaderObjectInputStream extends ObjectInputStream {
     protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
         if (expectedTypes != null && !valid) {
             if (Arrays.stream(expectedTypes)
-                    .filter(c -> c.getName().equals(desc.getName()))
-                    .findFirst().isPresent()) {
+                    .anyMatch(c -> c.getName().equals(desc.getName()))) {
                 valid = true;
             } else {
                 throw new InvalidClassException("Unauthorized deserialization attempt : " + desc.getName());
