@@ -16,6 +16,7 @@ import static org.talend.designer.maven.model.TalendJavaProjectConstants.*;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -74,6 +75,7 @@ import org.talend.core.runtime.services.IFilterService;
 import org.talend.core.ui.ITestContainerProviderService;
 import org.talend.designer.core.ICamelDesignerCoreService;
 import org.talend.designer.maven.launch.MavenPomCommandLauncher;
+import org.talend.designer.maven.model.MavenSystemFolders;
 import org.talend.designer.maven.model.TalendJavaProjectConstants;
 import org.talend.designer.maven.model.TalendMavenConstants;
 import org.talend.designer.maven.template.MavenTemplateManager;
@@ -111,9 +113,6 @@ public class AggregatorPomsHelper {
             throws Exception {
         IFile pomFile = getProjectRootPom();
         if (force || !pomFile.exists()) {
-            if (model == null) {
-                model = getCodeProjectTemplateModel();
-            }
             PomUtil.savePom(monitor, model, pomFile);
         }
     }
@@ -124,8 +123,7 @@ public class AggregatorPomsHelper {
         if (pomFile != null && pomFile.exists()) {
             Model oldModel = MavenPlugin.getMavenModelManager().readMavenModel(pomFile);
             List<Profile> profiles = oldModel.getProfiles().stream()
-                    .filter(profile -> StringUtils.startsWithIgnoreCase(profile.getId(), projectTechName))
-                    .collect(Collectors.toList());
+                    .filter(profile -> matchModuleProfile(profile.getId(), projectTechName)).collect(Collectors.toList());
             newModel.setModules(oldModel.getModules());
             newModel.getProfiles().addAll(profiles);
         }
@@ -298,11 +296,12 @@ public class AggregatorPomsHelper {
             if (PomIdsHelper.useProfileModule()) {
                 List<Profile> profiles = collectRefProjectProfiles(references);
                 Iterator<Profile> iterator = model.getProfiles().listIterator();
-                iterator.forEachRemaining(profile -> {
-                    if (StringUtils.startsWithIgnoreCase(profile.getId(), projectTechName)) {
+                while (iterator.hasNext()) {
+                    Profile profile = iterator.next();
+                    if (matchModuleProfile(profile.getId(), projectTechName)) {
                         iterator.remove();
                     }
-                });
+                }
                 model.getProfiles().addAll(profiles);
             } else {
                 List<String> refPrjectModules = new ArrayList<>();
@@ -313,11 +312,12 @@ public class AggregatorPomsHelper {
                 });
                 List<String> modules = model.getModules();
                 Iterator<String> iterator = modules.listIterator();
-                iterator.forEachRemaining(modulePath -> {
+                while (iterator.hasNext()) {
+                    String modulePath = iterator.next();
                     if (modulePath.startsWith("../../")) { //$NON-NLS-1$
                         iterator.remove();
                     }
-                });
+                }
                 modules.addAll(refPrjectModules);
             }
             createRootPom(model, true, monitor);
@@ -492,6 +492,10 @@ public class AggregatorPomsHelper {
             return codesFolder.getFolder(DIR_BEANS);
         }
         return null;
+    }
+
+    public IFolder getCodeSrcFolder(ERepositoryObjectType codeType) {
+        return getCodeFolder(codeType).getFolder(MavenSystemFolders.JAVA.getPath());
     }
 
     public IFolder getProcessFolder(ERepositoryObjectType type) {
@@ -714,7 +718,7 @@ public class AggregatorPomsHelper {
         if (!needUpdateRefProjectModules()) {
             Model model = MavenPlugin.getMavenModelManager().readMavenModel(getProjectRootPom());
             List<Profile> profiles = model.getProfiles();
-            return profiles.stream().filter(profile -> StringUtils.startsWithIgnoreCase(profile.getId(), projectTechName))
+            return profiles.stream().filter(profile -> matchModuleProfile(profile.getId(), projectTechName))
                     .collect(Collectors.toList());
         }
         if (references == null) {
@@ -789,7 +793,13 @@ public class AggregatorPomsHelper {
         monitor.beginTask("", size); //$NON-NLS-1$
         // project pom
         monitor.subTask("Synchronize project pom"); //$NON-NLS-1$
-        createRootPom(null, true, monitor);
+        Model model = getCodeProjectTemplateModel();
+        if (PomIdsHelper.useProfileModule()) {
+            model.getProfiles().addAll(collectRefProjectProfiles(null));
+        } else {
+            model.getModules().addAll(collectRefProjectModules(null));
+        }
+        createRootPom(model, true, monitor);
         installRootPom(true);
         monitor.worked(1);
         if (monitor.isCanceled()) {
@@ -843,13 +853,7 @@ public class AggregatorPomsHelper {
         // sync project pom again with all modules.
         monitor.subTask("Synchronize project pom with modules"); //$NON-NLS-1$
         collectCodeModules(modules);
-        Model model = getCodeProjectTemplateModel();
-        if (PomIdsHelper.useProfileModule()) {
-            model.getProfiles().addAll(collectRefProjectProfiles(null));
-        } else {
-            modules.addAll(collectRefProjectModules(null));
-        }
-        model.setModules(modules);
+        model.getModules().addAll(modules);
         createRootPom(model, true, monitor);
         installRootPom(true);
         monitor.worked(1);
@@ -906,6 +910,12 @@ public class AggregatorPomsHelper {
         Map<String, Object> parameters = new HashMap<String, Object>();
         parameters.put(MavenTemplateManager.KEY_PROJECT_NAME, projectTechName);
         return MavenTemplateManager.getCodeProjectTemplateModel(parameters);
+    }
+
+    public static boolean matchModuleProfile(String profileId, String projectTechName) {
+        // FIXME get profile id from extension point.
+        List<String> otherProfiles = Arrays.asList("docker", "cloud-publisher", "nexus"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        return !otherProfiles.contains(profileId) && StringUtils.startsWithIgnoreCase(profileId, projectTechName + "_");
     }
 
     private static IRunProcessService getRunProcessService() {
