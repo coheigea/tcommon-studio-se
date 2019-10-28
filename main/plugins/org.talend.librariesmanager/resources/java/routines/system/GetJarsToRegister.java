@@ -73,7 +73,7 @@ public class GetJarsToRegister {
 
         if (isNeedAddLibsPath(crcMapPath)) {
             java.util.Map<String, String> crcMap = null;
-            try (java.io.ObjectInputStream ois = new NoHeaderObjectInputStream(new java.io.FileInputStream(crcMapPath), HashMap.class)) {
+            try (java.io.ObjectInputStream ois = new ObjectInputStream(new java.io.FileInputStream(crcMapPath))) {
                 crcMap = (java.util.Map<String, String>) ois.readObject();
             }
             classPathLine = addLibsPath(originalClassPathLine, crcMap);
