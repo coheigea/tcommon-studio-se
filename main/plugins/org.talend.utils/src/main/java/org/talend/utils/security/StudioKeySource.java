@@ -22,11 +22,8 @@ import java.util.Properties;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.log4j.Logger;
 import org.talend.daikon.crypto.KeySource;
-import org.talend.daikon.crypto.KeySources;
 import org.talend.utils.StudioKeysFileCheck;
 
 
@@ -91,22 +88,19 @@ public class StudioKeySource implements KeySource {
         }
     }
 
-    public static StudioKeySource keyForDecryption(String keyName) {
-        return new StudioKeySource(keyName, false);
-    }
-
     /**
      * <p>
-     * always get max version of the key, key name format: {keyname}.{version}
+     * always get encryption key, key name format: {keyname}.{version}
      * </p>
      * <p>
      * for example, system.encryption.key.v1
      * </p>
      * 
      * @param keyName requested encryption key name
+     * @param isEncrypt indicate whether the encryption key is used for encryption
      */
-    public static StudioKeySource keyForEncryption(String keyName) {
-        return new StudioKeySource(keyName, true);
+    public static StudioKeySource key(String keyName, boolean isEncrypt) {
+        return new StudioKeySource(keyName, isEncrypt);
     }
 
     @Override
@@ -116,19 +110,23 @@ public class StudioKeySource implements KeySource {
         // load key
         String key = availableKeys.getProperty(targetKeyName);
         if (key == null) {
-            LOGGER.warn("Can not load " + this.keyName + " from file");
-            throw new IllegalArgumentException("Invalid encryption key");
+            LOGGER.warn("Can not load " + targetKeyName);
+            throw new IllegalArgumentException("Invalid encryption key: " + targetKeyName);
         } else {
-            LOGGER.debug("Loaded " + this.keyName + " from file");
+            LOGGER.debug("Loaded " + targetKeyName);
             return Base64.getDecoder().decode(key.getBytes(StandardCharsets.UTF_8));
         }
     }
 
     private int getVersion(String keyName) {
-        String[] keyNameArray = keyName.split(".");
+        String[] keyNameArray = keyName.split("\\.");
         if (keyNameArray[keyNameArray.length - 1].startsWith("v")
-                && StringUtils.isNumeric(keyNameArray[keyNameArray.length - 1].substring(1))) {
-            return NumberUtils.toInt(keyNameArray[keyNameArray.length - 1].substring(1));
+        ) {
+            try {
+                return Integer.parseInt(keyNameArray[keyNameArray.length - 1].substring(1));
+            } catch (NumberFormatException e) {
+                LOGGER.warn("Parse version of encryption key error, key: " + targetKeyName);
+            }
         }
         return 0;
     }

@@ -22,6 +22,7 @@ import java.security.Security;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
 import org.talend.daikon.crypto.CipherSource;
@@ -37,7 +38,13 @@ public class StudioEncryption {
 
     private static final String ENCRYPTION_KEY_FILE_SYS_PROP = StudioKeysFileCheck.ENCRYPTION_KEY_FILE_SYS_PROP;
 
+    private static final String PREFIX_PASSWORD_M3 = "ENC:[";
+
     private static final String PREFIX_PASSWORD = "enc:"; //$NON-NLS-1$
+
+    private static final Pattern REG_ENCRYPTED_DATA = Pattern.compile("^enc\\:system\\.encryption\\.key\\.v\\d\\:.+");
+
+    private static final Pattern REG_ENCRYPTED_DATA_M3 = Pattern.compile("^ENC\\:\\[.+\\]$");
 
     // Encryption key property names
     private static final String KEY_SYSTEM = StudioKeySource.KEY_SYSTEM_PREFIX + "1";
@@ -71,12 +78,12 @@ public class StudioEncryption {
         Map<String, StudioKeySource> cachedKeySources = new HashMap<String, StudioKeySource>();
         EncryptionKeyName[] keyNames = { EncryptionKeyName.SYSTEM, EncryptionKeyName.MIGRATION_TOKEN };
         for (EncryptionKeyName keyName : keyNames) {
-            StudioKeySource ks = loadKeySource(keyName, false);
+            StudioKeySource ks = loadKeySource(keyName.name, false);
             if (ks != null) {
                 cachedKeySources.put(keyName.name, ks);
             }
         }
-        cachedKeySources.put(EncryptionKeyName.ROUTINE.name, StudioKeySource.keyForDecryption(KEY_ROUTINE));
+        cachedKeySources.put(EncryptionKeyName.ROUTINE.name, StudioKeySource.key(KEY_ROUTINE, false));
         return cachedKeySources;
     });
 
@@ -85,15 +92,18 @@ public class StudioEncryption {
         this.requestEncryptionProvider = providerName;
     }
 
-    private Encryption getEncryption(boolean encrypt) {
+    private Encryption getEncryption(String keyName, boolean encrypt) {
         if (this.requestKeyName == null) {
             this.requestKeyName = EncryptionKeyName.SYSTEM;
         }
+        if (keyName == null) {
+            keyName = this.requestKeyName.name;
+        }
 
-        StudioKeySource ks = LOCALCACHEDKEYSOURCES.get().get(this.requestKeyName);
+        StudioKeySource ks = LOCALCACHEDKEYSOURCES.get().get(keyName);
 
         if (ks == null) {
-            ks = loadKeySource(this.requestKeyName, encrypt);
+            ks = loadKeySource(keyName, encrypt);
             if (ks != null) {
                 LOCALCACHEDKEYSOURCES.get().put(ks.getKeyName(), ks);
             }
@@ -117,14 +127,10 @@ public class StudioEncryption {
         return new Encryption(ks, cs);
     }
 
-    private static StudioKeySource loadKeySource(EncryptionKeyName encryptionKeyName, boolean isEncrypt) {
+    private static StudioKeySource loadKeySource(String encryptionKeyName, boolean isEncrypt) {
         StudioKeySource ks = null;
 
-        if (isEncrypt) {
-            ks = StudioKeySource.keyForEncryption(encryptionKeyName.name);
-        } else {
-            ks = StudioKeySource.keyForDecryption(encryptionKeyName.name);
-        }
+        ks = StudioKeySource.key(encryptionKeyName, isEncrypt);
 
         try {
             if (ks.getKey() != null) {
@@ -144,7 +150,7 @@ public class StudioEncryption {
         }
         try {
             if (!hasEncryptionSymbol(src)) {
-                return PREFIX_PASSWORD + this.getEncryption(true).encrypt(src);
+                return PREFIX_PASSWORD + this.getEncryption(null, true).encrypt(src);
             }
         } catch (Exception e) {
             // backward compatibility
@@ -161,8 +167,13 @@ public class StudioEncryption {
         }
         try {
             if (hasEncryptionSymbol(src)) {
-                return this.getEncryption(false)
-                        .decrypt(src.substring(PREFIX_PASSWORD.length(), src.length()));
+                if (src.startsWith(PREFIX_PASSWORD)) {
+                    String[] srcData = src.split("\\:");
+                    return this.getEncryption(srcData[1], false).decrypt(srcData[2]);
+                }
+                // compatible with M3, decrypt by default key - v1
+                return this.getEncryption(null, false)
+                        .decrypt(src.substring(PREFIX_PASSWORD_M3.length(), src.length() - 1));
             }
         } catch (Exception e) {
             // backward compatibility
@@ -197,7 +208,7 @@ public class StudioEncryption {
         if (input == null || input.length() == 0) {
             return false;
         }
-        return input.startsWith(PREFIX_PASSWORD);
+        return REG_ENCRYPTED_DATA.matcher(input).matches() || REG_ENCRYPTED_DATA_M3.matcher(input).matches();
     }
 
     private static void updateConfig() {
