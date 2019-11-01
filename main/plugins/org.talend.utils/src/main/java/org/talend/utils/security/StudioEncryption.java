@@ -115,43 +115,36 @@ public class StudioEncryption {
 
     public String encrypt(String src) {
         // backward compatibility
-        if (src == null) {
+        if (src == null || hasEncryptionSymbol(src)) {
             return src;
         }
         try {
-            if (!hasEncryptionSymbol(src)) {
-                return PREFIX_PASSWORD + getEncryption(this.requestKeyName.name, true).encrypt(src);
-            }
+            return PREFIX_PASSWORD + getEncryption(this.requestKeyName.name, true).encrypt(src);
         } catch (Exception e) {
             // backward compatibility
             LOGGER.error("encrypt error", e);
-            return null;
         }
-        return src;
+        return null;
     }
 
     public String decrypt(String src) {
         // backward compatibility
-        if (src == null || src.isEmpty()) {
+        if (!hasEncryptionSymbol(src)) {
             return src;
         }
         try {
-            if (hasEncryptionSymbol(src)) {
-                if (src.startsWith(PREFIX_PASSWORD)) {
-                    String[] srcData = src.split("\\:");
-                    return this.getEncryption(srcData[1], false).decrypt(srcData[2]);
-                }
-                // compatible with M3, decrypt by default key - v1
-                return this.getEncryption(KEY_SYSTEM, false)
-                        .decrypt(src.substring(PREFIX_PASSWORD_M3.length(), src.length() - 1));
+            if (src.startsWith(PREFIX_PASSWORD)) {
+                String[] srcData = src.split("\\:");
+                return this.getEncryption(srcData[1], false).decrypt(srcData[2]);
             }
+            // compatible with M3, decrypt by default key - v1
+            return this.getEncryption(KEY_SYSTEM, false).decrypt(src.substring(PREFIX_PASSWORD_M3.length(), src.length() - 1));
         } catch (Exception e) {
             // backward compatibility
             LOGGER.error("decrypt error", e);
-            return null;
         }
 
-        return src;
+        return null;
     }
 
 
@@ -175,10 +168,7 @@ public class StudioEncryption {
     }
 
     public static boolean hasEncryptionSymbol(String input) {
-        if (input == null || input.length() == 0) {
-            return false;
-        }
-        return REG_ENCRYPTED_DATA.matcher(input).matches() || REG_ENCRYPTED_DATA_M3.matcher(input).matches();
+        return input != null && (REG_ENCRYPTED_DATA.matcher(input).matches() || REG_ENCRYPTED_DATA_M3.matcher(input).matches());
     }
 
     private static void updateConfig() {
