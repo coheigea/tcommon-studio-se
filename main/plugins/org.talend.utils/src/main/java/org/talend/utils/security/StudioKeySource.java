@@ -31,7 +31,7 @@ import org.talend.utils.StudioKeysFileCheck;
 */
 public class StudioKeySource implements KeySource {
 
-    private static final Logger LOGGER = Logger.getLogger(StudioEncryption.class);
+    private static final Logger LOGGER = Logger.getLogger(StudioKeySource.class);
 
     public static final String KEY_SYSTEM_PREFIX = "system.encryption.key.v";
 
