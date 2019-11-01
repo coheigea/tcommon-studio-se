@@ -19,8 +19,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.Provider;
 import java.security.Security;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Pattern;
 
@@ -28,6 +26,7 @@ import org.apache.log4j.Logger;
 import org.talend.daikon.crypto.CipherSource;
 import org.talend.daikon.crypto.CipherSources;
 import org.talend.daikon.crypto.Encryption;
+import org.talend.daikon.crypto.KeySource;
 import org.talend.utils.StudioKeysFileCheck;
 
 public class StudioEncryption {
@@ -74,17 +73,8 @@ public class StudioEncryption {
         updateConfig();
     }
 
-    private static final ThreadLocal<Map<String, StudioKeySource>> LOCALCACHEDKEYSOURCES = ThreadLocal.withInitial(() -> {
-        Map<String, StudioKeySource> cachedKeySources = new HashMap<String, StudioKeySource>();
-        EncryptionKeyName[] keyNames = { EncryptionKeyName.SYSTEM, EncryptionKeyName.MIGRATION_TOKEN };
-        for (EncryptionKeyName keyName : keyNames) {
-            StudioKeySource ks = loadKeySource(keyName.name, false);
-            if (ks != null) {
-                cachedKeySources.put(keyName.name, ks);
-            }
-        }
-        cachedKeySources.put(EncryptionKeyName.ROUTINE.name, StudioKeySource.key(KEY_ROUTINE, false));
-        return cachedKeySources;
+    private static final ThreadLocal<Properties> LOCALCACHEDALLKEYS = ThreadLocal.withInitial(() -> {
+        return StudioKeySource.loadAllKeys();
     });
 
     private StudioEncryption(EncryptionKeyName encryptionKeyName, String providerName) {
@@ -92,28 +82,25 @@ public class StudioEncryption {
         this.requestEncryptionProvider = providerName;
     }
 
-    private Encryption getEncryption(String keyName, boolean encrypt) {
-        if (this.requestKeyName == null) {
-            this.requestKeyName = EncryptionKeyName.SYSTEM;
-        }
-        if (keyName == null) {
-            keyName = this.requestKeyName.name;
-        }
+    private static StudioKeySource getKeySource(String encryptionKeyName, boolean isEncrypt) {
+        Properties allKeys = LOCALCACHEDALLKEYS.get();
 
-        StudioKeySource ks = LOCALCACHEDKEYSOURCES.get().get(keyName);
+        StudioKeySource ks = StudioKeySource.key(allKeys, encryptionKeyName, isEncrypt);
 
-        if (ks == null) {
-            ks = loadKeySource(keyName, encrypt);
-            if (ks != null) {
-                LOCALCACHEDKEYSOURCES.get().put(ks.getKeyName(), ks);
+        try {
+            if (ks.getKey() != null) {
+                return ks;
             }
+        } catch (Exception e) {
+            LOGGER.error("Can not load encryption key: " + encryptionKeyName, e);
         }
-        if (ks == null) {
-            RuntimeException e = new IllegalArgumentException("Can not load encryption key data: " + this.requestKeyName.name);
-            LOGGER.error(e);
-            throw e;
-        }
+        RuntimeException e = new RuntimeException("Can not load encryption key: " + encryptionKeyName);
+        LOGGER.error("Can not load encryption key: " + encryptionKeyName, e);
+        throw e;
+    }
 
+    private Encryption getEncryption(String keyName, boolean isEncrypt) {
+        KeySource ks = getKeySource(keyName, isEncrypt);
         CipherSource cs = null;
         if (this.requestEncryptionProvider != null && !this.requestEncryptionProvider.isEmpty()) {
             Provider p = Security.getProvider(this.requestEncryptionProvider);
@@ -123,24 +110,7 @@ public class StudioEncryption {
         if (cs == null) {
             cs = CipherSources.getDefault();
         }
-
         return new Encryption(ks, cs);
-    }
-
-    private static StudioKeySource loadKeySource(String encryptionKeyName, boolean isEncrypt) {
-        StudioKeySource ks = null;
-
-        ks = StudioKeySource.key(encryptionKeyName, isEncrypt);
-
-        try {
-            if (ks.getKey() != null) {
-                return ks;
-            }
-        } catch (Exception e) {
-            LOGGER.warn("Can not load encryption key from file", e);
-        }
-
-        return null;
     }
 
     public String encrypt(String src) {
@@ -150,7 +120,7 @@ public class StudioEncryption {
         }
         try {
             if (!hasEncryptionSymbol(src)) {
-                return PREFIX_PASSWORD + this.getEncryption(null, true).encrypt(src);
+                return PREFIX_PASSWORD + getEncryption(this.requestKeyName.name, true).encrypt(src);
             }
         } catch (Exception e) {
             // backward compatibility
@@ -172,7 +142,7 @@ public class StudioEncryption {
                     return this.getEncryption(srcData[1], false).decrypt(srcData[2]);
                 }
                 // compatible with M3, decrypt by default key - v1
-                return this.getEncryption(null, false)
+                return this.getEncryption(KEY_SYSTEM, false)
                         .decrypt(src.substring(PREFIX_PASSWORD_M3.length(), src.length() - 1));
             }
         } catch (Exception e) {

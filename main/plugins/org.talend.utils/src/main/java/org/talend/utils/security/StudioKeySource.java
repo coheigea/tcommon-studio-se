@@ -18,9 +18,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Comparator;
 import java.util.Properties;
-import java.util.SortedSet;
-import java.util.TreeSet;
 
 import org.apache.log4j.Logger;
 import org.talend.daikon.crypto.KeySource;
@@ -40,52 +39,16 @@ public class StudioKeySource implements KeySource {
 
     private static final String FIXED_ENCRYPTION_KEY_DATA = "Talend_TalendKey";
 
-    private final String keyName;
+    private final String requestedKeyName;
 
-    private final boolean isMaxVersion;
+    private final boolean isEncrypt;
 
-    private String targetKeyName;
+    private final Properties availableKeys;
 
-    private final Properties availableKeys = new Properties();
-
-    private StudioKeySource(String keyName, boolean isMaxVersion) {
-        this.keyName = keyName;
-        this.isMaxVersion = isMaxVersion;
-
-        // load default keys from jar
-        try (InputStream fi = StudioKeySource.class.getResourceAsStream(StudioKeysFileCheck.ENCRYPTION_KEY_FILE_NAME)) {
-            availableKeys.load(fi);
-        } catch (IOException e) {
-            LOGGER.error(e);
-        }
-
-        // load from file set in system property, so as to override default keys
-        String keyPath = System.getProperty(StudioKeysFileCheck.ENCRYPTION_KEY_FILE_SYS_PROP);
-        if (keyPath != null) {
-            File keyFile = new File(keyPath);
-            if (keyFile.exists()) {
-                try (InputStream fi = new FileInputStream(keyFile)) {
-                    availableKeys.load(fi);
-                } catch (IOException e) {
-                    LOGGER.error(e);
-                }
-            }
-        }
-
-        // load system key data from System properties
-        System.getProperties().forEach((k,v)->{
-            String key = String.valueOf(v);
-            if (key.startsWith(KEY_SYSTEM_PREFIX)) {
-                availableKeys.put(key, v);
-            }
-        });
-        
-        // add fixed key
-        availableKeys.put(KEY_FIXED, Base64.getEncoder().encode(FIXED_ENCRYPTION_KEY_DATA.getBytes()));
-
-        if (LOGGER.isDebugEnabled() || LOGGER.isTraceEnabled()) {
-            availableKeys.stringPropertyNames().forEach((src) -> LOGGER.info(src));
-        }
+    private StudioKeySource(Properties allKeys, String keyName, boolean isMaxVersion) {
+        this.availableKeys = allKeys;
+        this.requestedKeyName = keyName;
+        this.isEncrypt = isMaxVersion;
     }
 
     /**
@@ -99,70 +62,99 @@ public class StudioKeySource implements KeySource {
      * @param keyName requested encryption key name
      * @param isEncrypt indicate whether the encryption key is used for encryption
      */
-    public static StudioKeySource key(String keyName, boolean isEncrypt) {
-        return new StudioKeySource(keyName, isEncrypt);
+    public static StudioKeySource key(Properties allKeys, String keyName, boolean isEncrypt) {
+        return new StudioKeySource(allKeys, keyName, isEncrypt);
     }
 
     @Override
     public byte[] getKey() throws Exception {
-        targetKeyName = this.getKeyName();
+        String keyToLoad = this.getKeyName();
         
         // load key
-        String key = availableKeys.getProperty(targetKeyName);
+        String key = availableKeys.getProperty(keyToLoad);
         if (key == null) {
-            LOGGER.warn("Can not load " + targetKeyName);
-            throw new IllegalArgumentException("Invalid encryption key: " + targetKeyName);
+            LOGGER.warn("Can not load " + keyToLoad);
+            throw new IllegalArgumentException("Invalid encryption key: " + keyToLoad);
         } else {
-            LOGGER.debug("Loaded " + targetKeyName);
+            LOGGER.debug("Loaded " + keyToLoad);
             return Base64.getDecoder().decode(key.getBytes(StandardCharsets.UTF_8));
         }
     }
 
-    private int getVersion(String keyName) {
+    private static int getVersion(String keyName) {
         String[] keyNameArray = keyName.split("\\.");
         if (keyNameArray[keyNameArray.length - 1].startsWith("v")
         ) {
             try {
                 return Integer.parseInt(keyNameArray[keyNameArray.length - 1].substring(1));
             } catch (NumberFormatException e) {
-                LOGGER.warn("Parse version of encryption key error, key: " + targetKeyName);
+                LOGGER.warn("Parse version of encryption key error, key: " + keyName);
             }
         }
         return 0;
     }
 
     private String getKeyPrefix() {
-        int index = this.keyName.lastIndexOf('.');
-        return this.keyName.substring(0, index);
+        int index = this.requestedKeyName.lastIndexOf('.');
+        return this.requestedKeyName.substring(0, index);
     }
 
     public String getKeyName() {
         // decryption key
-        if (!this.isMaxVersion) {
-            return this.keyName;
+        if (!this.isEncrypt) {
+            return this.requestedKeyName;
         }
 
-        int keyVersion = this.getVersion(this.keyName);
+        int keyVersion = getVersion(this.requestedKeyName);
         // No version
         if (keyVersion == 0) {
-            return this.keyName;
-        }
-        // already computed
-        if (this.targetKeyName != null) {
-            return this.targetKeyName;
+            return this.requestedKeyName;
         }
 
         String keyPrefix = this.getKeyPrefix();
 
-        SortedSet<Integer> versions = new TreeSet<Integer>();
+        return availableKeys.stringPropertyNames().stream().filter(e -> e.startsWith(keyPrefix))
+                .max(Comparator.comparing(e -> getVersion(e))).get();
 
-        availableKeys.stringPropertyNames().forEach((src)->{
-            if (src.startsWith(keyPrefix)) {
-                versions.add(this.getVersion(src));
+    }
+
+    public static Properties loadAllKeys() {
+        Properties allKeys = new Properties();
+        // load default keys from jar
+        try (InputStream fi = StudioKeySource.class.getResourceAsStream(StudioKeysFileCheck.ENCRYPTION_KEY_FILE_NAME)) {
+            allKeys.load(fi);
+        } catch (IOException e) {
+            LOGGER.error(e);
+        }
+
+        // load from file set in system property, so as to override default keys
+        String keyPath = System.getProperty(StudioKeysFileCheck.ENCRYPTION_KEY_FILE_SYS_PROP);
+        if (keyPath != null) {
+            File keyFile = new File(keyPath);
+            if (keyFile.exists()) {
+                try (InputStream fi = new FileInputStream(keyFile)) {
+                    allKeys.load(fi);
+                } catch (IOException e) {
+                    LOGGER.error(e);
+                }
+            }
+        }
+
+        // load system key data from System properties
+        System.getProperties().forEach((k, v) -> {
+            String key = String.valueOf(v);
+            if (key.startsWith(KEY_SYSTEM_PREFIX)) {
+                allKeys.put(key, v);
             }
         });
 
-        return keyPrefix + ".v" + versions.last();
+        // add fixed key
+        allKeys.put(KEY_FIXED, Base64.getEncoder().encode(FIXED_ENCRYPTION_KEY_DATA.getBytes()));
+
+        if (LOGGER.isDebugEnabled() || LOGGER.isTraceEnabled()) {
+            allKeys.stringPropertyNames().forEach((src) -> LOGGER.info(src));
+        }
+        return allKeys;
     }
 
 }
