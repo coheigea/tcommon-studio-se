@@ -26,7 +26,6 @@ import org.apache.log4j.Logger;
 import org.talend.daikon.crypto.CipherSource;
 import org.talend.daikon.crypto.CipherSources;
 import org.talend.daikon.crypto.Encryption;
-import org.talend.daikon.crypto.KeySource;
 import org.talend.utils.StudioKeysFileCheck;
 
 public class StudioEncryption {
@@ -41,23 +40,24 @@ public class StudioEncryption {
 
     private static final String PREFIX_PASSWORD = "enc:"; //$NON-NLS-1$
 
-    private static final Pattern REG_ENCRYPTED_DATA = Pattern.compile("^enc\\:system\\.encryption\\.key\\.v\\d\\:.+");
+    private static final Pattern REG_ENCRYPTED_DATA = Pattern.compile("^enc\\:system\\.encryption\\.key\\.v\\d\\:\\p{Print}+");
 
-    private static final Pattern REG_ENCRYPTED_DATA_M3 = Pattern.compile("^ENC\\:\\[.+\\]$");
+    private static final Pattern REG_ENCRYPTED_DATA_M3 = Pattern.compile("^ENC\\:\\[\\p{Print}+\\]$");
 
-    // Encryption key property names
-    private static final String KEY_SYSTEM = StudioKeySource.KEY_SYSTEM_PREFIX + "1";
+    // Encryption key name shipped in M3
+    private static final String KEY_SYSTEM_M3 = StudioKeySource.KEY_SYSTEM_PREFIX + "1";
 
     private static final String KEY_MIGRATION_TOKEN = "migration.token.encryption.key";
 
+    // TODO: this fixed key will be removed
     private static final String KEY_ROUTINE = StudioKeySource.KEY_FIXED;
 
-    private EncryptionKeyName requestKeyName;
+    private EncryptionKeyName keyName;
 
-    private String requestEncryptionProvider;
+    private String securityProvider;
 
     public enum EncryptionKeyName {
-        SYSTEM(KEY_SYSTEM),
+        SYSTEM(KEY_SYSTEM_M3),
         ROUTINE(KEY_ROUTINE),
         MIGRATION_TOKEN(KEY_MIGRATION_TOKEN);
 
@@ -65,6 +65,10 @@ public class StudioEncryption {
 
         EncryptionKeyName(String name) {
             this.name = name;
+        }
+
+        public String toString() {
+            return this.name;
         }
     }
 
@@ -78,8 +82,8 @@ public class StudioEncryption {
     });
 
     private StudioEncryption(EncryptionKeyName encryptionKeyName, String providerName) {
-        this.requestKeyName = encryptionKeyName;
-        this.requestEncryptionProvider = providerName;
+        this.keyName = encryptionKeyName;
+        this.securityProvider = providerName;
     }
 
     private static StudioKeySource getKeySource(String encryptionKeyName, boolean isEncrypt) {
@@ -99,11 +103,10 @@ public class StudioEncryption {
         throw e;
     }
 
-    private Encryption getEncryption(String keyName, boolean isEncrypt) {
-        KeySource ks = getKeySource(keyName, isEncrypt);
+    private Encryption getEncryption(StudioKeySource ks) {
         CipherSource cs = null;
-        if (this.requestEncryptionProvider != null && !this.requestEncryptionProvider.isEmpty()) {
-            Provider p = Security.getProvider(this.requestEncryptionProvider);
+        if (this.securityProvider != null && !this.securityProvider.isEmpty()) {
+            Provider p = Security.getProvider(this.securityProvider);
             cs = CipherSources.aesGcm(12, 16, p);
         }
 
@@ -119,7 +122,13 @@ public class StudioEncryption {
             return src;
         }
         try {
-            return PREFIX_PASSWORD + getEncryption(this.requestKeyName.name, true).encrypt(src);
+            StudioKeySource ks = getKeySource(this.keyName.name, true);
+            StringBuilder sb = new StringBuilder();
+            sb.append(PREFIX_PASSWORD);
+            sb.append(ks.getKeyName());
+            sb.append(":");
+            sb.append(getEncryption(ks).encrypt(src));
+            return sb.toString();
         } catch (Exception e) {
             // backward compatibility
             LOGGER.error("encrypt error", e);
@@ -135,10 +144,12 @@ public class StudioEncryption {
         try {
             if (src.startsWith(PREFIX_PASSWORD)) {
                 String[] srcData = src.split("\\:");
-                return this.getEncryption(srcData[1], false).decrypt(srcData[2]);
+                StudioKeySource ks = getKeySource(srcData[1], false);
+                return this.getEncryption(ks).decrypt(srcData[2]);
             }
-            // compatible with M3, decrypt by default key - v1
-            return this.getEncryption(KEY_SYSTEM, false).decrypt(src.substring(PREFIX_PASSWORD_M3.length(), src.length() - 1));
+            StudioKeySource ks = getKeySource(KEY_SYSTEM_M3, false);
+            // compatible with M3, decrypt by default key: system.encryption.key.v1
+            return this.getEncryption(ks).decrypt(src.substring(PREFIX_PASSWORD_M3.length(), src.length() - 1));
         } catch (Exception e) {
             // backward compatibility
             LOGGER.error("decrypt error", e);

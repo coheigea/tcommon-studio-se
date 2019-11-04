@@ -37,18 +37,25 @@ public class StudioKeySource implements KeySource {
 
     public static final String KEY_FIXED = "routine.encryption.key";
 
+    // TODO: this fixed key will be removed shortly
     private static final String FIXED_ENCRYPTION_KEY_DATA = "Talend_TalendKey";
 
-    private final String requestedKeyName;
+    private final String keyName;
 
     private final boolean isEncrypt;
 
     private final Properties availableKeys;
 
+    private String systemKeyForEncrypt;
+
     private StudioKeySource(Properties allKeys, String keyName, boolean isMaxVersion) {
         this.availableKeys = allKeys;
-        this.requestedKeyName = keyName;
+        this.keyName = keyName;
         this.isEncrypt = isMaxVersion;
+
+        // get highest version of system encryption key, this key will be used to encrypt data
+        this.systemKeyForEncrypt = availableKeys.stringPropertyNames().stream().filter(e -> e.startsWith(KEY_SYSTEM_PREFIX))
+                .max(Comparator.comparing(e -> getVersion(e))).get();
     }
 
     /**
@@ -59,6 +66,7 @@ public class StudioKeySource implements KeySource {
      * for example, system.encryption.key.v1
      * </p>
      * 
+     * @param allKeys all of keys
      * @param keyName requested encryption key name
      * @param isEncrypt indicate whether the encryption key is used for encryption
      */
@@ -82,42 +90,30 @@ public class StudioKeySource implements KeySource {
     }
 
     private static int getVersion(String keyName) {
-        String[] keyNameArray = keyName.split("\\.");
-        if (keyNameArray[keyNameArray.length - 1].startsWith("v")
-        ) {
-            try {
-                return Integer.parseInt(keyNameArray[keyNameArray.length - 1].substring(1));
-            } catch (NumberFormatException e) {
-                LOGGER.warn("Parse version of encryption key error, key: " + keyName);
-            }
+        int idx = keyName.lastIndexOf('.');
+        try {
+            return Integer.parseInt(keyName.substring(idx + 2));
+        } catch (NumberFormatException e) {
+            LOGGER.warn("Parse version of encryption key error, key: " + keyName);
         }
         return 0;
     }
 
-    private String getKeyPrefix() {
-        int index = this.requestedKeyName.lastIndexOf('.');
-        return this.requestedKeyName.substring(0, index);
-    }
-
+    /**
+     * Get key name corresponding to the key source
+     */
     public String getKeyName() {
-        // decryption key
-        if (!this.isEncrypt) {
-            return this.requestedKeyName;
+        if (this.isEncrypt && this.keyName.startsWith(KEY_SYSTEM_PREFIX)) {
+            // return highest version for system encryption key
+            return this.systemKeyForEncrypt;
         }
-
-        int keyVersion = getVersion(this.requestedKeyName);
-        // No version
-        if (keyVersion == 0) {
-            return this.requestedKeyName;
-        }
-
-        String keyPrefix = this.getKeyPrefix();
-
-        return availableKeys.stringPropertyNames().stream().filter(e -> e.startsWith(keyPrefix))
-                .max(Comparator.comparing(e -> getVersion(e))).get();
-
+        // key name for others, just return as it is.
+        return this.keyName;
     }
 
+    /**
+     * Load all of keys into properties
+     */
     public static Properties loadAllKeys() {
         Properties allKeys = new Properties();
         // load default keys from jar
@@ -142,7 +138,7 @@ public class StudioKeySource implements KeySource {
 
         // load system key data from System properties
         System.getProperties().forEach((k, v) -> {
-            String key = String.valueOf(v);
+            String key = String.valueOf(k);
             if (key.startsWith(KEY_SYSTEM_PREFIX)) {
                 allKeys.put(key, v);
             }
