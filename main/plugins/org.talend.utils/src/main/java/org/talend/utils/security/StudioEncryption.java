@@ -40,7 +40,13 @@ public class StudioEncryption {
 
     private static final String PREFIX_PASSWORD = "enc:"; //$NON-NLS-1$
 
-    private static final Pattern REG_ENCRYPTED_DATA = Pattern.compile("^enc\\:system\\.encryption\\.key\\.v\\d\\:\\p{Print}+");
+    private static final Pattern REG_ENCRYPTED_DATA_SYSTEM = Pattern
+            .compile("^enc\\:system\\.encryption\\.key\\.v\\d\\:\\p{Print}+");
+
+    private static final Pattern REG_ENCRYPTED_DATA_MIGRATION = Pattern
+            .compile("^enc\\:migration\\.token\\.encryption\\.key\\:\\p{Print}+");
+
+    private static final Pattern REG_ENCRYPTED_DATA_ROUTINE = Pattern.compile("^enc\\:routine\\.encryption\\.key\\:\\p{Print}+");
 
     private static final Pattern REG_ENCRYPTED_DATA_M3 = Pattern.compile("^ENC\\:\\[\\p{Print}+\\]$");
 
@@ -179,7 +185,9 @@ public class StudioEncryption {
     }
 
     public static boolean hasEncryptionSymbol(String input) {
-        return input != null && (REG_ENCRYPTED_DATA.matcher(input).matches() || REG_ENCRYPTED_DATA_M3.matcher(input).matches());
+        return input != null
+                && (REG_ENCRYPTED_DATA_SYSTEM.matcher(input).matches() || REG_ENCRYPTED_DATA_MIGRATION.matcher(input).matches()
+                        || REG_ENCRYPTED_DATA_ROUTINE.matcher(input).matches() || REG_ENCRYPTED_DATA_M3.matcher(input).matches());
     }
 
     private static void updateConfig() {

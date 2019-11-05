@@ -15,10 +15,25 @@ package org.talend.utils.security;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
+import java.security.NoSuchAlgorithmException;
+import java.util.Properties;
 
 import org.junit.Test;
 
 public class StudioEncryptionTest {
+
+    static {
+        // initialize encryption keys
+        try {
+            Properties p = StudioKeySourceTest.generateKeys();
+            System.getProperties().putAll(p);
+        } catch (NoSuchAlgorithmException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
 
     private String input1 = "Talend";
 
@@ -42,17 +57,21 @@ public class StudioEncryptionTest {
 
     @Test
     public void testAESEncrypt() throws Exception {
-        assertNotEquals(input1, StudioEncryption.getStudioEncryption(StudioEncryption.EncryptionKeyName.SYSTEM).encrypt(input1));
+
+        // always encrypt data by highest version of system key
+        String encrypted = StudioEncryption.getStudioEncryption(StudioEncryption.EncryptionKeyName.SYSTEM).encrypt(input1);
+        assertNotEquals(input1, encrypted);
+        assertTrue(StudioEncryption.hasEncryptionSymbol(encrypted));
+        assertTrue(encrypted.startsWith("enc:" + StudioKeySource.KEY_SYSTEM_PREFIX + 3));
         assertEquals(input1,
-                StudioEncryption.getStudioEncryption(StudioEncryption.EncryptionKeyName.SYSTEM).decrypt(StudioEncryption.getStudioEncryption(StudioEncryption.EncryptionKeyName.SYSTEM).encrypt(input1)));
+                StudioEncryption.getStudioEncryption(StudioEncryption.EncryptionKeyName.SYSTEM).decrypt(encrypted));
 
-        assertNotEquals(input2, StudioEncryption.getStudioEncryption(StudioEncryption.EncryptionKeyName.SYSTEM).encrypt(input2));
+        encrypted = StudioEncryption.getStudioEncryption(StudioEncryption.EncryptionKeyName.MIGRATION_TOKEN).encrypt(input2);
+        assertNotEquals(input2, encrypted);
+        assertTrue(StudioEncryption.hasEncryptionSymbol(encrypted));
+        assertTrue(encrypted.startsWith("enc:" + StudioEncryption.EncryptionKeyName.MIGRATION_TOKEN.toString()));
         assertEquals(input2,
-                StudioEncryption.getStudioEncryption(StudioEncryption.EncryptionKeyName.SYSTEM).decrypt(StudioEncryption.getStudioEncryption(StudioEncryption.EncryptionKeyName.SYSTEM).encrypt(input2)));
-
-        assertNotEquals(input3, StudioEncryption.getStudioEncryption(StudioEncryption.EncryptionKeyName.SYSTEM).encrypt(input3));
-        assertEquals(input3,
-                StudioEncryption.getStudioEncryption(StudioEncryption.EncryptionKeyName.SYSTEM).decrypt(StudioEncryption.getStudioEncryption(StudioEncryption.EncryptionKeyName.SYSTEM).encrypt(input3)));
+                StudioEncryption.getStudioEncryption(StudioEncryption.EncryptionKeyName.MIGRATION_TOKEN).decrypt(encrypted));
 
         // ensure negative case
         assertEquals(null, StudioEncryption.getStudioEncryption(StudioEncryption.EncryptionKeyName.SYSTEM).encrypt(null));
