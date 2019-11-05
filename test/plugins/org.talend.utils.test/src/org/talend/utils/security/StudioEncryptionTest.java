@@ -17,23 +17,9 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.security.NoSuchAlgorithmException;
-import java.util.Properties;
-
 import org.junit.Test;
 
 public class StudioEncryptionTest {
-
-    static {
-        // initialize encryption keys
-        try {
-            Properties p = StudioKeySourceTest.generateKeys();
-            System.getProperties().putAll(p);
-        } catch (NoSuchAlgorithmException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-    }
 
     private String input1 = "Talend";
 
@@ -62,7 +48,7 @@ public class StudioEncryptionTest {
         String encrypted = StudioEncryption.getStudioEncryption(StudioEncryption.EncryptionKeyName.SYSTEM).encrypt(input1);
         assertNotEquals(input1, encrypted);
         assertTrue(StudioEncryption.hasEncryptionSymbol(encrypted));
-        assertTrue(encrypted.startsWith("enc:" + StudioKeySource.KEY_SYSTEM_PREFIX + 3));
+        assertTrue(encrypted.startsWith("enc:" + StudioEncryption.EncryptionKeyName.SYSTEM.toString()));
         assertEquals(input1,
                 StudioEncryption.getStudioEncryption(StudioEncryption.EncryptionKeyName.SYSTEM).decrypt(encrypted));
 
