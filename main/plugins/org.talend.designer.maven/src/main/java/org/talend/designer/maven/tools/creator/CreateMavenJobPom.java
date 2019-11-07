@@ -82,6 +82,7 @@ import org.talend.designer.runprocess.IProcessor;
 import org.talend.designer.runprocess.IRunProcessService;
 import org.talend.repository.ProjectManager;
 import org.talend.repository.model.RepositoryConstants;
+import org.talend.utils.StudioKeysFileCheck;
 import org.talend.utils.io.FilesUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
@@ -516,33 +517,47 @@ public class CreateMavenJobPom extends AbstractMavenProcessorPom {
         String[] jvmArgs = processor.getJVMArgs();
         StringBuilder jvmArgsStr = new StringBuilder();
         StringBuilder jvmArgsStrPs1 = new StringBuilder();
+        StringBuilder encryptionFilePath = new StringBuilder();
+        StringBuilder encryptionFilePathPs1 = new StringBuilder();
         if (jvmArgs != null && jvmArgs.length > 0) {
             for (String arg : jvmArgs) {
-                jvmArgsStr.append(arg + " "); //$NON-NLS-1$
-                jvmArgsStrPs1.append("\'" + arg + "\' "); //$NON-NLS-1$ //$NON-NLS-2$
+                if (arg.indexOf(StudioKeysFileCheck.ENCRYPTION_KEY_FILE_SYS_PROP_PARAM) >= 0) {
+                    encryptionFilePath.append(arg + " "); //$NON-NLS-1$
+                    encryptionFilePathPs1.append("\'" + arg + "\' "); //$NON-NLS-1$ //$NON-NLS-2$
+                } else {
+                    jvmArgsStr.append(arg + " "); //$NON-NLS-1$
+                    jvmArgsStrPs1.append("\'" + arg + "\' "); //$NON-NLS-1$ //$NON-NLS-2$
+                }
             }
         }
         final Map<String, Object> templateParameters = PomUtil.getTemplateParameters(property);
-        String batContent = MavenTemplateManager
-                .getProjectSettingValue(IProjectSettingPreferenceConstants.TEMPLATE_BAT, templateParameters);
+        String batContent = MavenTemplateManager.getProjectSettingValue(IProjectSettingPreferenceConstants.TEMPLATE_BAT,
+                templateParameters);
+        if (batContent.indexOf(StudioKeysFileCheck.ENCRYPTION_KEY_FILE_SYS_PROP_PARAM) < 0) {
+            batContent += encryptionFilePath;
+        }
+        String shContent = MavenTemplateManager.getProjectSettingValue(IProjectSettingPreferenceConstants.TEMPLATE_SH,
+                templateParameters);
+        if (shContent.indexOf(StudioKeysFileCheck.ENCRYPTION_KEY_FILE_SYS_PROP_PARAM) < 0) {
+            shContent += encryptionFilePath;
+        }
+        String psContent = MavenTemplateManager.getProjectSettingValue(IProjectSettingPreferenceConstants.TEMPLATE_PS,
+                templateParameters);
+        if (psContent.indexOf(StudioKeysFileCheck.ENCRYPTION_KEY_FILE_SYS_PROP_PARAM) < 0) {
+            psContent += encryptionFilePathPs1;
+        }
         batContent = StringUtils
                 .replaceEach(batContent,
                         new String[] { "${talend.job.jvmargs}", "${talend.job.bat.classpath}", "${talend.job.class}",
                                 "${talend.job.bat.addition}" },
                         new String[] { jvmArgsStr.toString().trim(), getWindowsClasspath(), jobClass,
                                 windowsScriptAdditionValue.toString() });
-
-        String shContent = MavenTemplateManager
-                .getProjectSettingValue(IProjectSettingPreferenceConstants.TEMPLATE_SH, templateParameters);
         shContent = StringUtils
                 .replaceEach(shContent,
                         new String[] { "${talend.job.jvmargs}", "${talend.job.sh.classpath}", "${talend.job.class}",
                                 "${talend.job.sh.addition}" },
                         new String[] { jvmArgsStr.toString().trim(), getUnixClasspath(), jobClass,
                                 unixScriptAdditionValue.toString() });
-
-        String psContent = MavenTemplateManager
-                .getProjectSettingValue(IProjectSettingPreferenceConstants.TEMPLATE_PS, templateParameters);
         psContent = StringUtils
                 .replaceEach(psContent,
                         new String[] { "${talend.job.jvmargs.ps1}", "${talend.job.ps1.classpath}",

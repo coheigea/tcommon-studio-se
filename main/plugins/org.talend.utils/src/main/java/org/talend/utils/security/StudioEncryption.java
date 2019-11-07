@@ -55,8 +55,7 @@ public class StudioEncryption {
 
     private static final String KEY_MIGRATION_TOKEN = "migration.token.encryption.key";
 
-    // TODO: this fixed key will be removed
-    private static final String KEY_ROUTINE = StudioKeySource.KEY_FIXED;
+    private static final String KEY_ROUTINE = StudioKeySource.KEY_ROUTINE_PREFIX + "1";;
 
     private EncryptionKeyName keyName;
 

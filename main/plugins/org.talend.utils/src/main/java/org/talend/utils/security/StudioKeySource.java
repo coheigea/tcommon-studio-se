@@ -35,10 +35,7 @@ public class StudioKeySource implements KeySource {
 
     public static final String KEY_SYSTEM_PREFIX = "system.encryption.key.v";
 
-    public static final String KEY_FIXED = "routine.encryption.key";
-
-    // TODO: this fixed key will be removed shortly
-    private static final String FIXED_ENCRYPTION_KEY_DATA = "Talend_TalendKey";
+    public static final String KEY_ROUTINE_PREFIX = "routine.encryption.key.v";
 
     private final String keyName;
 
@@ -139,13 +136,10 @@ public class StudioKeySource implements KeySource {
         // load system key data from System properties
         System.getProperties().forEach((k, v) -> {
             String key = String.valueOf(k);
-            if (key.startsWith(KEY_SYSTEM_PREFIX)) {
+            if (key.startsWith(KEY_SYSTEM_PREFIX) || key.startsWith(KEY_ROUTINE_PREFIX)) {
                 allKeys.put(key, v);
             }
         });
-
-        // add fixed key
-        allKeys.put(KEY_FIXED, Base64.getEncoder().encodeToString(FIXED_ENCRYPTION_KEY_DATA.getBytes()));
 
         if (LOGGER.isDebugEnabled() || LOGGER.isTraceEnabled()) {
             allKeys.stringPropertyNames().forEach((src) -> LOGGER.info(src));
