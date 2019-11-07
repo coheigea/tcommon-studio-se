@@ -142,7 +142,7 @@ public class StudioKeySource implements KeySource {
         });
 
         if (LOGGER.isDebugEnabled() || LOGGER.isTraceEnabled()) {
-            allKeys.stringPropertyNames().forEach((src) -> LOGGER.info(src));
+            allKeys.stringPropertyNames().forEach((k) -> LOGGER.debug(k));
         }
         return allKeys;
     }
