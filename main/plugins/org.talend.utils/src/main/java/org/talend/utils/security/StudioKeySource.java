@@ -148,7 +148,7 @@ public class StudioKeySource implements KeySource {
         allKeys.put(KEY_FIXED, Base64.getEncoder().encodeToString(FIXED_ENCRYPTION_KEY_DATA.getBytes()));
 
         if (LOGGER.isDebugEnabled() || LOGGER.isTraceEnabled()) {
-            allKeys.stringPropertyNames().forEach((src) -> LOGGER.info(src));
+            allKeys.stringPropertyNames().forEach((k) -> LOGGER.debug(k));
         }
         return allKeys;
     }
