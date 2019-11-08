@@ -45,6 +45,8 @@ public class StudioKeySource implements KeySource {
 
     private String systemKeyForEncrypt;
 
+    private String routineKeyForEncrypt;
+
     private StudioKeySource(Properties allKeys, String keyName, boolean isMaxVersion) {
         this.availableKeys = allKeys;
         this.keyName = keyName;
@@ -52,6 +54,8 @@ public class StudioKeySource implements KeySource {
 
         // get highest version of system encryption key, this key will be used to encrypt data
         this.systemKeyForEncrypt = availableKeys.stringPropertyNames().stream().filter(e -> e.startsWith(KEY_SYSTEM_PREFIX))
+                .max(Comparator.comparing(e -> getVersion(e))).get();
+        this.routineKeyForEncrypt = availableKeys.stringPropertyNames().stream().filter(e -> e.startsWith(KEY_ROUTINE_PREFIX))
                 .max(Comparator.comparing(e -> getVersion(e))).get();
     }
 
@@ -100,9 +104,14 @@ public class StudioKeySource implements KeySource {
      * Get key name corresponding to the key source
      */
     public String getKeyName() {
-        if (this.isEncrypt && this.keyName.startsWith(KEY_SYSTEM_PREFIX)) {
-            // return highest version for system encryption key
-            return this.systemKeyForEncrypt;
+        if (this.isEncrypt) {
+            // return highest version for encryption key
+            if (this.keyName.startsWith(KEY_SYSTEM_PREFIX)) {
+                return this.systemKeyForEncrypt;
+            }
+            if (this.keyName.startsWith(KEY_ROUTINE_PREFIX)) {
+                return this.routineKeyForEncrypt;
+            }
         }
         // key name for others, just return as it is.
         return this.keyName;

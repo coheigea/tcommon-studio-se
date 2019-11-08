@@ -517,14 +517,9 @@ public class CreateMavenJobPom extends AbstractMavenProcessorPom {
         String[] jvmArgs = processor.getJVMArgs();
         StringBuilder jvmArgsStr = new StringBuilder();
         StringBuilder jvmArgsStrPs1 = new StringBuilder();
-        StringBuilder encryptionFilePath = new StringBuilder();
-        StringBuilder encryptionFilePathPs1 = new StringBuilder();
         if (jvmArgs != null && jvmArgs.length > 0) {
             for (String arg : jvmArgs) {
-                if (arg.indexOf(StudioKeysFileCheck.ENCRYPTION_KEY_FILE_SYS_PROP_PARAM) >= 0) {
-                    encryptionFilePath.append(arg + " "); //$NON-NLS-1$
-                    encryptionFilePathPs1.append("\'" + arg + "\' "); //$NON-NLS-1$ //$NON-NLS-2$
-                } else {
+                if (arg.indexOf(StudioKeysFileCheck.ENCRYPTION_KEY_FILE_SYS_PROP_PARAM) < 0) {
                     jvmArgsStr.append(arg + " "); //$NON-NLS-1$
                     jvmArgsStrPs1.append("\'" + arg + "\' "); //$NON-NLS-1$ //$NON-NLS-2$
                 }
@@ -533,19 +528,10 @@ public class CreateMavenJobPom extends AbstractMavenProcessorPom {
         final Map<String, Object> templateParameters = PomUtil.getTemplateParameters(property);
         String batContent = MavenTemplateManager.getProjectSettingValue(IProjectSettingPreferenceConstants.TEMPLATE_BAT,
                 templateParameters);
-        if (batContent.indexOf(StudioKeysFileCheck.ENCRYPTION_KEY_FILE_SYS_PROP_PARAM) < 0) {
-            batContent += encryptionFilePath;
-        }
         String shContent = MavenTemplateManager.getProjectSettingValue(IProjectSettingPreferenceConstants.TEMPLATE_SH,
                 templateParameters);
-        if (shContent.indexOf(StudioKeysFileCheck.ENCRYPTION_KEY_FILE_SYS_PROP_PARAM) < 0) {
-            shContent += encryptionFilePath;
-        }
         String psContent = MavenTemplateManager.getProjectSettingValue(IProjectSettingPreferenceConstants.TEMPLATE_PS,
                 templateParameters);
-        if (psContent.indexOf(StudioKeysFileCheck.ENCRYPTION_KEY_FILE_SYS_PROP_PARAM) < 0) {
-            psContent += encryptionFilePathPs1;
-        }
         batContent = StringUtils
                 .replaceEach(batContent,
                         new String[] { "${talend.job.jvmargs}", "${talend.job.bat.classpath}", "${talend.job.class}",
