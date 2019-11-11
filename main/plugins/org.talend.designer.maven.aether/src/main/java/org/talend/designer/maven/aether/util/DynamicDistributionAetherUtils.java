@@ -108,11 +108,11 @@ public class DynamicDistributionAetherUtils {
 
         RepositorySystem repoSystem = null;
         if (multiThread) {
-            repoSystem = MavenLibraryResolverProvider.newRepositorySystem();
+            repoSystem = MavenLibraryResolverProvider.newRepositorySystemForResolver();
         } else {
             repoSystem = repoSystemMap.get(key);
             if (repoSystem == null) {
-                repoSystem = MavenLibraryResolverProvider.newRepositorySystem();
+                repoSystem = MavenLibraryResolverProvider.newRepositorySystemForResolver();
                 repoSystemMap.put(key, repoSystem);
             }
         }
@@ -149,6 +149,7 @@ public class DynamicDistributionAetherUtils {
             builder = builder.setAuthentication(auth);
         }
         RemoteRepository central = builder.build();
+        central = new RemoteRepository.Builder(central).setProxy(new TalendAetherProxySelector().getProxy(central)).build();
 
         CollectRequest collectRequest = new CollectRequest();
         collectRequest.setRoot(dependency);
@@ -280,7 +281,7 @@ public class DynamicDistributionAetherUtils {
         if (monitor == null) {
             monitor = new DummyDynamicMonitor();
         }
-        RepositorySystem repSystem = MavenLibraryResolverProvider.newRepositorySystem();
+        RepositorySystem repSystem = MavenLibraryResolverProvider.newRepositorySystemForResolver();
         RepositorySystemSession repSysSession = newSession(repSystem, localPath, monitor);
         updateDependencySelector((DefaultRepositorySystemSession) repSysSession, monitor);
 
@@ -304,6 +305,7 @@ public class DynamicDistributionAetherUtils {
             builder = builder.setAuthentication(auth);
         }
         RemoteRepository central = builder.build();
+        central = new RemoteRepository.Builder(central).setProxy(new TalendAetherProxySelector().getProxy(central)).build();
 
         VersionRangeRequest verRangeRequest = new VersionRangeRequest();
         verRangeRequest.addRepository(central);
@@ -326,7 +328,7 @@ public class DynamicDistributionAetherUtils {
         if (monitor == null) {
             monitor = new DummyDynamicMonitor();
         }
-        RepositorySystem repSystem = MavenLibraryResolverProvider.newRepositorySystem();
+        RepositorySystem repSystem = MavenLibraryResolverProvider.newRepositorySystemForResolver();
         RepositorySystemSession repSysSession = newSession(repSystem, localPath, monitor);
         updateDependencySelector((DefaultRepositorySystemSession) repSysSession, monitor);
 
@@ -350,6 +352,7 @@ public class DynamicDistributionAetherUtils {
             builder = builder.setAuthentication(auth);
         }
         RemoteRepository central = builder.build();
+        central = new RemoteRepository.Builder(central).setProxy(new TalendAetherProxySelector().getProxy(central)).build();
 
         VersionRangeRequest verRangeRequest = new VersionRangeRequest();
         verRangeRequest.addRepository(central);
@@ -414,6 +417,7 @@ public class DynamicDistributionAetherUtils {
 
         LocalRepository localRepo = new LocalRepository(repositoryPath);
         session.setLocalRepositoryManager(system.newLocalRepositoryManager(session, localRepo));
+        session.setProxySelector(new TalendAetherProxySelector());
 
         updateDependencySelector(session, monitor);
 
