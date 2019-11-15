@@ -106,7 +106,7 @@ public class PasswordEncryptUtil {
         }
 
         public KeySource getKeySource(String keyName) {
-            if (fileKeySources.getAllKeyNames().contains(keyName)) {
+            if (fileKeySources != null && fileKeySources.getAllKeyNames().contains(keyName)) {
                 return fileKeySources.getKeySource(keyName);
             }
             return defaultKeySources.getKeySource(keyName);

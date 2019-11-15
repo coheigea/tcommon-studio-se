@@ -112,7 +112,10 @@ public class StudioKeySource implements KeySource {
                 return this.systemKeyForEncrypt;
             }
             if (this.keyName.startsWith(KEY_ROUTINE_PREFIX)) {
-                return this.routineKeyForEncrypt;
+                if (this.routineKeyForEncrypt != null) {
+                    return this.routineKeyForEncrypt;
+                }
+                return StudioEncryption.KEY_ROUTINE;
             }
         }
         // key name for others, just return as it is.
