@@ -98,7 +98,7 @@ public class RoutineLibraryMananger {
                                     if(fileUrl != null){
                                     	if (!"file".equals(fileUrl.getProtocol())) throw new IllegalArgumentException();
                                     	URI fileUri = new File(fileUrl.getFile()).toURI();
-                                        libManagerService.deploy(fileUri);
+                                        libManagerService.deploy(fileUri, null, false);
                                     }
                                 } catch (Exception e) {
                                     log.warn("Cannot deploy: " + bundleName + path);
