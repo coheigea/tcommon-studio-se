@@ -43,6 +43,9 @@ public class PasswordEncryptUtil {
 
     public static final String PASSWORD_FOR_LOGS_VALUE = "...";
 
+    private PasswordEncryptUtil() {
+    }
+
     public static String encryptPassword(String input) throws Exception {
         if (input == null) {
             return input;
