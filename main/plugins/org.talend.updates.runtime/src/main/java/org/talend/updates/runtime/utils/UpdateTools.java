@@ -19,6 +19,8 @@ import java.io.InputStream;
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -186,6 +188,16 @@ public class UpdateTools {
             TaCoKitCarUtils.installCars(carFolder, monitor, cancellable);
         }
         return true;
+    }
+
+    public static void cleanupBundles(Set<IInstallableUnit> validInstall) {
+        File pluginFolderFile = getProductRootFolder().toPath().resolve("plugins").toFile();
+        if (!pluginFolderFile.exists() || !pluginFolderFile.isDirectory()) {
+            return;
+        }
+        Set<File> plugins = Stream.of(pluginFolderFile.listFiles()).collect(Collectors.toSet());
+        validInstall.stream().forEach(iu -> plugins.stream().filter(f -> f.exists() && f.getName().startsWith(iu.getId() + "_"))
+                .sorted((e1, e2) -> e2.compareTo(e1)).skip(1).forEach(f -> f.delete()));
     }
 
 }

@@ -76,24 +76,6 @@ public class PatchP2InstallManager {
     public String installP2(IProgressMonitor monitor, Logger log, File installingPatchFolder,
             List<String> invalidBundleInfoList) throws Exception {
         String newProductVersion = ""; //$NON-NLS-1$
-        IStatus status = doInstallP2(monitor, log, installingPatchFolder, invalidBundleInfoList);
-        if (status != null) {
-            switch (status.getSeverity()) {
-            case IStatus.OK:
-            case IStatus.INFO:
-            case IStatus.WARNING:
-                newProductVersion = UpdateTools.readProductVersionFromPatch(installingPatchFolder);
-                UpdateTools.syncExtraFeatureIndex(installingPatchFolder);
-                P2Manager.getInstance().clearOsgiCache();
-                UpdateTools.installCars(monitor, installingPatchFolder, false);
-                break;
-            }
-        }
-        return newProductVersion;
-    }
-
-    private IStatus doInstallP2(IProgressMonitor monitor, Logger log, File installingPatchFolder,
-            final List<String> invalidBundleInfoList) throws ProvisionException {
         Set<IInstallableUnit> toInstall = queryFromP2Repository(monitor, QueryUtil.createIUAnyQuery(),
                 Arrays.asList(installingPatchFolder.toURI()));
         // show the installation unit
@@ -145,7 +127,20 @@ public class PatchP2InstallManager {
         provisioningJob.setPhaseSet(talendPhaseSet);
         IStatus status = provisioningJob.run(monitor);
         log.info("provisionning status is :" + status);
-        return status;
+        if (status != null) {
+            switch (status.getSeverity()) {
+            case IStatus.OK:
+            case IStatus.INFO:
+            case IStatus.WARNING:
+                newProductVersion = UpdateTools.readProductVersionFromPatch(installingPatchFolder);
+                UpdateTools.syncExtraFeatureIndex(installingPatchFolder);
+                P2Manager.getInstance().clearOsgiCache();
+                UpdateTools.installCars(monitor, installingPatchFolder, false);
+                UpdateTools.cleanupBundles(validInstall);
+                break;
+            }
+        }
+        return newProductVersion;
     }
 
     public Set<IInstallableUnit> queryFromP2Repository(IProgressMonitor monitor, IQuery<IInstallableUnit> query,
