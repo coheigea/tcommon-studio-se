@@ -37,26 +37,31 @@ public class StudioKeySource implements KeySource {
 
     public static final String KEY_ROUTINE_PREFIX = "routine.encryption.key.v";
 
-    private final String keyName;
+    public static final String KEY_FIXED = "routine.encryption.key";
+
+    private String keyName;
+
+    private String routineKeyName;
 
     private final boolean isEncrypt;
 
     private final Properties availableKeys;
-
-    private String systemKeyForEncrypt;
-
-    private String routineKeyForEncrypt;
 
     private StudioKeySource(Properties allKeys, String keyName, boolean isMaxVersion) {
         this.availableKeys = allKeys;
         this.keyName = keyName;
         this.isEncrypt = isMaxVersion;
 
-        // get highest version of system encryption key, this key will be used to encrypt data
-        this.systemKeyForEncrypt = availableKeys.stringPropertyNames().stream().filter(e -> e.startsWith(KEY_SYSTEM_PREFIX))
-                .max(Comparator.comparing(e -> getVersion(e))).get();
-        this.routineKeyForEncrypt = availableKeys.stringPropertyNames().stream().filter(e -> e.startsWith(KEY_ROUTINE_PREFIX))
-                .max(Comparator.comparing(e -> getVersion(e))).orElse(null);
+        if (this.isEncrypt && this.keyName.startsWith(KEY_SYSTEM_PREFIX)) {
+            // return highest version for system encryption key
+            this.keyName = availableKeys.stringPropertyNames().stream().filter(e -> e.startsWith(KEY_SYSTEM_PREFIX))
+                    .max(Comparator.comparing(e -> getVersion(e))).get();
+        }
+        if (this.isEncrypt && this.keyName.startsWith(KEY_ROUTINE_PREFIX)) {
+            // return highest version for routine encryption key
+            this.routineKeyName = availableKeys.stringPropertyNames().stream().filter(e -> e.startsWith(KEY_ROUTINE_PREFIX))
+                    .max(Comparator.comparing(e -> getVersion(e))).orElse(null);
+        }
     }
 
     /**
@@ -91,13 +96,11 @@ public class StudioKeySource implements KeySource {
     }
 
     private static int getVersion(String keyName) {
-        if (keyName != null) {
-            int idx = keyName.lastIndexOf('.');
-            try {
-                return Integer.parseInt(keyName.substring(idx + 2));
-            } catch (NumberFormatException e) {
-                LOGGER.warn("Parse version of encryption key error, key: " + keyName);
-            }
+        int idx = keyName.lastIndexOf('.');
+        try {
+            return Integer.parseInt(keyName.substring(idx + 2));
+        } catch (NumberFormatException e) {
+            LOGGER.warn("Parse version of encryption key error, key: " + keyName);
         }
         return 0;
     }
@@ -109,16 +112,15 @@ public class StudioKeySource implements KeySource {
         if (this.isEncrypt) {
             // return highest version for encryption key
             if (this.keyName.startsWith(KEY_SYSTEM_PREFIX)) {
-                return this.systemKeyForEncrypt;
+                return this.keyName;
             }
             if (this.keyName.startsWith(KEY_ROUTINE_PREFIX)) {
-                if (this.routineKeyForEncrypt != null) {
-                    return this.routineKeyForEncrypt;
+                if (this.routineKeyName != null) {
+                    return this.routineKeyName;
                 }
                 return StudioEncryption.KEY_ROUTINE;
             }
         }
-        // key name for others, just return as it is.
         return this.keyName;
     }
 
@@ -134,13 +136,15 @@ public class StudioKeySource implements KeySource {
             LOGGER.error(e);
         }
 
+        Properties tempProperty = new Properties();
+
         // load from file set in system property, so as to override default keys
         String keyPath = System.getProperty(StudioKeysFileCheck.ENCRYPTION_KEY_FILE_SYS_PROP);
         if (keyPath != null) {
             File keyFile = new File(keyPath);
             if (keyFile.exists()) {
                 try (InputStream fi = new FileInputStream(keyFile)) {
-                    allKeys.load(fi);
+                    tempProperty.load(fi);
                 } catch (IOException e) {
                     LOGGER.error(e);
                 }
@@ -148,7 +152,10 @@ public class StudioKeySource implements KeySource {
         }
 
         // load system key data from System properties
-        System.getProperties().forEach((k, v) -> {
+        tempProperty.putAll(System.getProperties());
+
+        // filter out non system encryption keys
+        tempProperty.forEach((k, v) -> {
             String key = String.valueOf(k);
             if (key.startsWith(KEY_SYSTEM_PREFIX) || key.startsWith(KEY_ROUTINE_PREFIX)) {
                 allKeys.put(key, v);

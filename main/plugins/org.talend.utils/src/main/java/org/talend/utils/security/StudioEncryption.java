@@ -48,14 +48,12 @@ public class StudioEncryption {
 
     private static final Pattern REG_ENCRYPTED_DATA_ROUTINE = Pattern.compile("^enc\\:routine\\.encryption\\.key\\:\\p{Print}+");
 
-    private static final Pattern REG_ENCRYPTED_DATA_M3 = Pattern.compile("^ENC\\:\\[\\p{Print}+\\]$");
-
     // Encryption key name shipped in M3
     private static final String KEY_SYSTEM_M3 = StudioKeySource.KEY_SYSTEM_PREFIX + "1";
 
-    private static final String KEY_MIGRATION_TOKEN = "migration.token.encryption.key";
+    static final String KEY_ROUTINE = StudioKeySource.KEY_ROUTINE_PREFIX + "1";
 
-    static final String KEY_ROUTINE = StudioKeySource.KEY_ROUTINE_PREFIX + "1";;
+    private static final String KEY_MIGRATION_TOKEN = "migration.token.encryption.key";
 
     private EncryptionKeyName keyName;
 
@@ -186,7 +184,8 @@ public class StudioEncryption {
     public static boolean hasEncryptionSymbol(String input) {
         return input != null
                 && (REG_ENCRYPTED_DATA_SYSTEM.matcher(input).matches() || REG_ENCRYPTED_DATA_MIGRATION.matcher(input).matches()
-                        || REG_ENCRYPTED_DATA_ROUTINE.matcher(input).matches() || REG_ENCRYPTED_DATA_M3.matcher(input).matches());
+                        || REG_ENCRYPTED_DATA_ROUTINE.matcher(input).matches()
+                        || (input.startsWith(PREFIX_PASSWORD_M3) && input.endsWith("]")));
     }
 
     private static void updateConfig() {
