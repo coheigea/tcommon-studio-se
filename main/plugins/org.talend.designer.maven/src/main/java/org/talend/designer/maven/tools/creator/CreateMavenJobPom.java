@@ -82,7 +82,6 @@ import org.talend.designer.runprocess.IProcessor;
 import org.talend.designer.runprocess.IRunProcessService;
 import org.talend.repository.ProjectManager;
 import org.talend.repository.model.RepositoryConstants;
-import org.talend.utils.StudioKeysFileCheck;
 import org.talend.utils.io.FilesUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
@@ -519,10 +518,8 @@ public class CreateMavenJobPom extends AbstractMavenProcessorPom {
         StringBuilder jvmArgsStrPs1 = new StringBuilder();
         if (jvmArgs != null && jvmArgs.length > 0) {
             for (String arg : jvmArgs) {
-                if (arg.indexOf(StudioKeysFileCheck.ENCRYPTION_KEY_FILE_SYS_PROP_PARAM) < 0) {
-                    jvmArgsStr.append(arg + " "); //$NON-NLS-1$
-                    jvmArgsStrPs1.append("\'" + arg + "\' "); //$NON-NLS-1$ //$NON-NLS-2$
-                }
+                jvmArgsStr.append(arg + " "); //$NON-NLS-1$
+                jvmArgsStrPs1.append("\'" + arg + "\' "); //$NON-NLS-1$ //$NON-NLS-2$
             }
         }
         final Map<String, Object> templateParameters = PomUtil.getTemplateParameters(property);
