@@ -525,22 +525,24 @@ public class CreateMavenJobPom extends AbstractMavenProcessorPom {
         final Map<String, Object> templateParameters = PomUtil.getTemplateParameters(property);
         String batContent = MavenTemplateManager.getProjectSettingValue(IProjectSettingPreferenceConstants.TEMPLATE_BAT,
                 templateParameters);
-        String shContent = MavenTemplateManager.getProjectSettingValue(IProjectSettingPreferenceConstants.TEMPLATE_SH,
-                templateParameters);
-        String psContent = MavenTemplateManager.getProjectSettingValue(IProjectSettingPreferenceConstants.TEMPLATE_PS,
-                templateParameters);
         batContent = StringUtils
                 .replaceEach(batContent,
                         new String[] { "${talend.job.jvmargs}", "${talend.job.bat.classpath}", "${talend.job.class}",
                                 "${talend.job.bat.addition}" },
                         new String[] { jvmArgsStr.toString().trim(), getWindowsClasspath(), jobClass,
                                 windowsScriptAdditionValue.toString() });
+
+        String shContent = MavenTemplateManager.getProjectSettingValue(IProjectSettingPreferenceConstants.TEMPLATE_SH,
+                templateParameters);
         shContent = StringUtils
                 .replaceEach(shContent,
                         new String[] { "${talend.job.jvmargs}", "${talend.job.sh.classpath}", "${talend.job.class}",
                                 "${talend.job.sh.addition}" },
                         new String[] { jvmArgsStr.toString().trim(), getUnixClasspath(), jobClass,
                                 unixScriptAdditionValue.toString() });
+
+        String psContent = MavenTemplateManager.getProjectSettingValue(IProjectSettingPreferenceConstants.TEMPLATE_PS,
+                templateParameters);
         psContent = StringUtils
                 .replaceEach(psContent,
                         new String[] { "${talend.job.jvmargs.ps1}", "${talend.job.ps1.classpath}",
