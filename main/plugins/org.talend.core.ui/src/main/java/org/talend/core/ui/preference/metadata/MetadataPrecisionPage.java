@@ -9,10 +9,13 @@ import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 import org.talend.core.prefs.ITalendCorePrefConstants;
 import org.talend.core.ui.CoreUIPlugin;
+import org.talend.core.ui.i18n.Messages;
 
 public class MetadataPrecisionPage extends FieldEditorPreferencePage implements IWorkbenchPreferencePage {
 
     IntegerFieldEditor xmlColumnsLimit;
+
+    private static final String DISABLED_SCHEMES_KEY = "jdk.http.auth.tunneling.disabledSchemes";
 
     public MetadataPrecisionPage() {
         setPreferenceStore(CoreUIPlugin.getDefault().getPreferenceStore());
@@ -30,6 +33,9 @@ public class MetadataPrecisionPage extends FieldEditorPreferencePage implements 
         textControl.setToolTipText("Set the maximum number of schema table columns the xml metadata support. ");
         xmlColumnsLimit.setValidRange(1, Short.MAX_VALUE);
         addField(xmlColumnsLimit);
+
+        addField(new BooleanFieldEditor(ITalendCorePrefConstants.METADATA_PREFERENCE_PAGE_ENABLE_BASIC,
+                Messages.getString("MetadataPreferencePage.EnableBasic.name"), getFieldEditorParent()));
     }
 
     public void init(IWorkbench workbench) {
@@ -39,7 +45,14 @@ public class MetadataPrecisionPage extends FieldEditorPreferencePage implements 
 
     public boolean performOk() {
         getPreferenceStore().setValue(ITalendCorePrefConstants.MAXIMUM_AMOUNT_OF_COLUMNS_FOR_XML, xmlColumnsLimit.getIntValue());
-        return super.performOk();
+        boolean ok = super.performOk();
+        boolean checked = getPreferenceStore().getBoolean(ITalendCorePrefConstants.METADATA_PREFERENCE_PAGE_ENABLE_BASIC);
+        if (checked) {
+            System.setProperty(DISABLED_SCHEMES_KEY, "");
+        } else {
+            System.clearProperty(DISABLED_SCHEMES_KEY);
+        }
+        return ok;
     }
 
 }
