@@ -796,6 +796,8 @@ public class ImportBasicHandler extends AbstractImportExecutableHandler {
                                 || selectedImportItem.getState() == State.NAME_AND_ID_EXISTED || selectedImportItem.getState() == State.NAME_AND_ID_EXISTED_BOTH)
                         && !ImportCacheHelper.getInstance().getDeletedItems().contains(id)) {
 
+                    // delete first then import, refer to ImportExportHandlersManager
+                    // forceDeleteBeforeOverwriteImport(IProgressMonitor, List<ImportItem>, Set<String>, Set<String>)
                     lastVersion = null;
                 }
 
