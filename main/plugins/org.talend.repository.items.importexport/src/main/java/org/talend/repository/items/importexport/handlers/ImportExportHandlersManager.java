@@ -47,6 +47,7 @@ import org.osgi.framework.FrameworkUtil;
 import org.talend.commons.CommonsPlugin;
 import org.talend.commons.exception.ExceptionHandler;
 import org.talend.commons.exception.PersistenceException;
+import org.talend.commons.runtime.model.repository.ERepositoryStatus;
 import org.talend.commons.utils.time.TimeMeasure;
 import org.talend.core.GlobalServiceRegister;
 import org.talend.core.PluginChecker;
@@ -697,6 +698,11 @@ public class ImportExportHandlersManager {
                                 throws Exception {
                             boolean hasJoblet = false;
                             boolean jobletReloaded = false;
+
+                            // for overwrite, delete first
+                            forceDeleteBeforeOverwriteImport(monitor, processingItemRecords, overwriteDeletedItems,
+                                    idDeletedBeforeImport);
+
                             for (ImportItem itemRecord : processingItemRecords) {
                                 if (monitor.isCanceled()) {
                                     return;
@@ -747,8 +753,7 @@ public class ImportExportHandlersManager {
                                         }
 
                                         // will import
-                                        importHandler.doImport(monitor, manager, itemRecord, overwriting, destinationPath,
-                                                overwriteDeletedItems, idDeletedBeforeImport);
+                                        importHandler.doImport(monitor, manager, itemRecord, overwriting, destinationPath);
 
                                         if (monitor.isCanceled()) {
                                             return;
@@ -790,6 +795,105 @@ public class ImportExportHandlersManager {
                                 }
                             }
 
+                        }
+
+                        private void forceDeleteBeforeOverwriteImport(final IProgressMonitor monitor,
+                                final List<ImportItem> processingItemRecords, Set<String> overwriteDeletedItems,
+                                Set<String> idDeletedBeforeImport) {
+                            ProxyRepositoryFactory repFactory = ProxyRepositoryFactory.getInstance();
+                            for (ImportItem itemRecord : processingItemRecords) {
+                                if (monitor.isCanceled()) {
+                                    return;
+                                }
+
+                                if (itemRecord.isImported()) {
+                                    continue; // import finished, to skip
+                                }
+
+                                IPath path = new Path(itemRecord.getItem().getState().getPath());
+                                ImportBasicHandler importBasicHandler = null;
+                                if (itemRecord.getImportHandler() instanceof ImportBasicHandler) {
+                                    importBasicHandler = (ImportBasicHandler) itemRecord.getImportHandler();
+                                }
+                                if (importBasicHandler != null) {
+                                    path = importBasicHandler.checkAndCreatePath(itemRecord, destinationPath);
+                                }
+                                try {
+
+                                    String id = itemRecord.getProperty().getId();
+
+                                    IRepositoryViewObject lastVersion = itemRecord.getExistingItemWithSameId();
+                                    if (itemRecord.getState() == State.NAME_EXISTED
+                                            || itemRecord.getState() == State.NAME_AND_ID_EXISTED_BOTH) {
+                                        lastVersion = itemRecord.getExistingItemWithSameName();
+                                    }
+                                    if (lastVersion != null && overwrite && !itemRecord.isLocked()
+                                            && (itemRecord.getState() == State.ID_EXISTED
+                                                    || itemRecord.getState() == State.NAME_EXISTED
+                                                    || itemRecord.getState() == State.NAME_AND_ID_EXISTED
+                                                    || itemRecord.getState() == State.NAME_AND_ID_EXISTED_BOTH)
+                                            && !ImportCacheHelper.getInstance().getDeletedItems().contains(id)) {
+
+                                        if (overwriteDeletedItems != null && !overwriteDeletedItems.contains(id)) { // bug
+                                                                                                                    // 10520.
+                                            ERepositoryStatus status = repFactory.getStatus(lastVersion);
+                                            if (status == ERepositoryStatus.DELETED) {
+                                                repFactory.restoreObject(lastVersion, path); // restore first.
+                                            }
+                                            overwriteDeletedItems.add(id);
+                                        }
+
+                                        /* only delete when name exsit rather than id exist */
+                                        if (itemRecord.getState().equals(ImportItem.State.NAME_EXISTED)
+                                                || itemRecord.getState().equals(ImportItem.State.NAME_AND_ID_EXISTED)
+                                                || itemRecord.getState().equals(ImportItem.State.NAME_AND_ID_EXISTED_BOTH)) {
+                                            final IRepositoryViewObject lastVersionBackup = lastVersion;
+                                            if (idDeletedBeforeImport != null && !idDeletedBeforeImport.contains(id)) {
+                                                // TDI-19535 (check if exists, delete all items with same id)
+                                                final List<IRepositoryViewObject> allVersionToDelete = repFactory.getAllVersion(
+                                                        ProjectManager.getInstance().getCurrentProject(),
+                                                        lastVersionBackup.getId(), false);
+                                                String importingLabel = itemRecord.getProperty().getLabel();
+                                                String existLabel = lastVersionBackup.getProperty().getLabel();
+                                                final boolean isDeleteOnRemote = importingLabel != null
+                                                        && importingLabel.equalsIgnoreCase(importingLabel)
+                                                        && !importingLabel.equals(existLabel);
+                                                RepositoryWorkUnit repositoryWorkUnit = new RepositoryWorkUnit(
+                                                        Messages.getString("ImportExportHandlersManager_deletingItemsMessage")) {
+
+                                                    @Override
+                                                    public void run() throws PersistenceException {
+                                                        if (ProxyRepositoryFactory.getInstance().isFullLogonFinished()) {
+                                                            ProxyRepositoryFactory.getInstance().fireRepositoryPropertyChange(
+                                                                    ERepositoryActionName.DELETE_FOREVER.getName(), null,
+                                                                    lastVersionBackup);
+                                                        }
+                                                        for (IRepositoryViewObject currentVersion : allVersionToDelete) {
+                                                            repFactory.forceDeleteObjectPhysical(lastVersionBackup,
+                                                                    currentVersion.getVersion(), isDeleteOnRemote);
+                                                        }
+                                                    }
+                                                };
+                                                if (isDeleteOnRemote) {
+                                                    repositoryWorkUnit.setForceTransaction(true);
+                                                } else {
+                                                    repositoryWorkUnit.setForceTransaction(false);
+                                                }
+
+                                                repositoryWorkUnit.setRefreshRepository(false);
+                                                repositoryWorkUnit.setAvoidUnloadResources(true);
+                                                ProxyRepositoryFactory.getInstance()
+                                                        .executeRepositoryWorkUnit(repositoryWorkUnit);
+                                                idDeletedBeforeImport.add(id);
+                                            }
+                                        }
+                                    }
+                                } catch (Exception e) {
+                                    itemRecord.addError(itemRecord.getItemName() + ";" + e.getMessage() + ";" + path);//$NON-NLS-1$
+                                    ImportCacheHelper.getInstance().setImportingError(true);
+                                    ExceptionHandler.process(e);
+                                }
+                            }
                         }
 
                     };
