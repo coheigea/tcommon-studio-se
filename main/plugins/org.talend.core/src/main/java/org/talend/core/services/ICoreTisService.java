@@ -73,4 +73,6 @@ public interface ICoreTisService extends IService {
 
     Set<String> getExtraBundlesFromPatch(File featureIndexFile) throws IOException;
 
+    Set<String> getComponentBlackList() throws Exception;
+
 }

@@ -35,10 +35,12 @@ import org.eclipse.equinox.p2.query.IQuery;
 import org.eclipse.equinox.p2.query.IQueryResult;
 import org.eclipse.equinox.p2.query.QueryUtil;
 import org.talend.commons.CommonsPlugin;
+import org.talend.commons.runtime.utils.io.FileCopyUtils;
 import org.talend.commons.runtime.utils.io.IOUtils;
 import org.talend.commons.utils.resource.UpdatesHelper;
 import org.talend.core.GlobalServiceRegister;
 import org.talend.core.services.ICoreTisService;
+import org.talend.librariesmanager.prefs.LibrariesManagerUtils;
 import org.talend.updates.runtime.service.ITaCoKitUpdateService;
 import org.talend.utils.io.FilesUtils;
 
@@ -181,13 +183,32 @@ public class UpdateTools {
         return getProductRootFolder().toPath().resolve("temp").toFile(); //$NON-NLS-1$
     }
 
-    public static boolean installCars(IProgressMonitor monitor, File installingPatchesFolder, boolean cancellable)
+    public static boolean installCars(IProgressMonitor monitor, File installingPatchFolder, boolean cancellable)
             throws Exception {
-        if (installingPatchesFolder != null && installingPatchesFolder.exists()) {
-            File carFolder = new File(installingPatchesFolder, ITaCoKitUpdateService.FOLDER_CAR);
+        if (installingPatchFolder != null && installingPatchFolder.exists()) {
+            File carFolder = new File(installingPatchFolder, ITaCoKitUpdateService.FOLDER_CAR);
             TaCoKitCarUtils.installCars(carFolder, monitor, cancellable);
         }
         return true;
+    }
+
+    public static void syncLibraries(File installingPatchFolder) throws IOException {
+        // sync to product lib/java
+        File libFolder = new File(installingPatchFolder, LibrariesManagerUtils.LIB_JAVA_SUB_FOLDER);
+        if (libFolder.exists() && libFolder.isDirectory() && libFolder.listFiles().length > 0) {
+            FilesUtils.copyFolder(libFolder, new File(LibrariesManagerUtils.getLibrariesPath()), false, null, null, false);
+        }
+    }
+
+    public static void syncM2Repository(File installingPatchFolder) throws IOException {
+        // sync to the local m2 repository, if need try to deploy to remote TAC Nexus.
+        File m2Folder = new File(installingPatchFolder, PathUtils.FOLDER_M2_REPOSITORY);
+        if (m2Folder.exists() && m2Folder.isDirectory() && m2Folder.listFiles().length > 0) {
+            // if have remote nexus, install component too early and before logon project , will cause the problem
+            // (TUP-17604)
+            // prepare to install lib after logon. so copy all to temp folder also.
+            FileCopyUtils.copyFolder(m2Folder, new File(PathUtils.getComponentsM2TempFolder(), PathUtils.FOLDER_M2_REPOSITORY));
+        }
     }
 
     public static void cleanupBundles(Set<IInstallableUnit> validInstall) {

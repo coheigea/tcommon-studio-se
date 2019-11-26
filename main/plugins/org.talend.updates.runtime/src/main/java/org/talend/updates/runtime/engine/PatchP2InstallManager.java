@@ -135,6 +135,8 @@ public class PatchP2InstallManager {
                 newProductVersion = UpdateTools.readProductVersionFromPatch(installingPatchFolder);
                 UpdateTools.syncExtraFeatureIndex(installingPatchFolder);
                 P2Manager.getInstance().clearOsgiCache();
+                UpdateTools.syncLibraries(installingPatchFolder);
+                UpdateTools.syncM2Repository(installingPatchFolder);
                 UpdateTools.installCars(monitor, installingPatchFolder, false);
                 UpdateTools.cleanupBundles(validInstall);
                 break;
