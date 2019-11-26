@@ -700,8 +700,8 @@ public class ImportExportHandlersManager {
                             boolean jobletReloaded = false;
 
                             // for overwrite, delete first
-                            forceDeleteBeforeOverwriteImport(monitor, processingItemRecords, overwriteDeletedItems,
-                                    idDeletedBeforeImport);
+//                            forceDeleteBeforeOverwriteImport(monitor, processingItemRecords, overwriteDeletedItems,
+//                                    idDeletedBeforeImport);
 
                             for (ImportItem itemRecord : processingItemRecords) {
                                 if (monitor.isCanceled()) {
@@ -797,9 +797,12 @@ public class ImportExportHandlersManager {
 
                         }
 
-                        private void forceDeleteBeforeOverwriteImport(final IProgressMonitor monitor,
+//                        private void forceDeleteWithRelationsBeforeOverwriteImport(final IProgressMonitor monitor,
+//                                final List<ImportItem> processingItemRecords, Set<String> overwriteDeletedItems,
+//                                Set<String> idDeletedBeforeImport) 
+                        private void collectPhysicalDeleteList4OverwriteImport(final IProgressMonitor monitor,
                                 final List<ImportItem> processingItemRecords, Set<String> overwriteDeletedItems,
-                                Set<String> idDeletedBeforeImport) {
+                                Set<String> idDeletedBeforeImport, List<IRepositoryViewObject> physicalDeleteList) {
                             ProxyRepositoryFactory repFactory = ProxyRepositoryFactory.getInstance();
                             for (ImportItem itemRecord : processingItemRecords) {
                                 if (monitor.isCanceled()) {
@@ -819,9 +822,7 @@ public class ImportExportHandlersManager {
                                     path = importBasicHandler.checkAndCreatePath(itemRecord, destinationPath);
                                 }
                                 try {
-
                                     String id = itemRecord.getProperty().getId();
-
                                     IRepositoryViewObject lastVersion = itemRecord.getExistingItemWithSameId();
                                     if (itemRecord.getState() == State.NAME_EXISTED
                                             || itemRecord.getState() == State.NAME_AND_ID_EXISTED_BOTH) {
@@ -858,32 +859,7 @@ public class ImportExportHandlersManager {
                                                 final boolean isDeleteOnRemote = importingLabel != null
                                                         && importingLabel.equalsIgnoreCase(importingLabel)
                                                         && !importingLabel.equals(existLabel);
-                                                RepositoryWorkUnit repositoryWorkUnit = new RepositoryWorkUnit(
-                                                        Messages.getString("ImportExportHandlersManager_deletingItemsMessage")) {
 
-                                                    @Override
-                                                    public void run() throws PersistenceException {
-                                                        if (ProxyRepositoryFactory.getInstance().isFullLogonFinished()) {
-                                                            ProxyRepositoryFactory.getInstance().fireRepositoryPropertyChange(
-                                                                    ERepositoryActionName.DELETE_FOREVER.getName(), null,
-                                                                    lastVersionBackup);
-                                                        }
-                                                        for (IRepositoryViewObject currentVersion : allVersionToDelete) {
-                                                            repFactory.forceDeleteObjectPhysical(lastVersionBackup,
-                                                                    currentVersion.getVersion(), isDeleteOnRemote);
-                                                        }
-                                                    }
-                                                };
-                                                if (isDeleteOnRemote) {
-                                                    repositoryWorkUnit.setForceTransaction(true);
-                                                } else {
-                                                    repositoryWorkUnit.setForceTransaction(false);
-                                                }
-
-                                                repositoryWorkUnit.setRefreshRepository(false);
-                                                repositoryWorkUnit.setAvoidUnloadResources(true);
-                                                ProxyRepositoryFactory.getInstance()
-                                                        .executeRepositoryWorkUnit(repositoryWorkUnit);
                                                 idDeletedBeforeImport.add(id);
                                             }
                                         }
