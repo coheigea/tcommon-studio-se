@@ -834,13 +834,13 @@ public class LocalRepositoryFactory extends AbstractEMFRepositoryFactory impleme
         boolean foundFakeTask = false;
         for (int i = 0; i < project.getEmfProject().getMigrationTask().size(); i++) {
             MigrationTask task = (MigrationTask) project.getEmfProject().getMigrationTask().get(i);
-            if (!StringUtils.equals(task.getId(), fakeMigratonTask.getId())) {
+            if (task.getId() != null && !StringUtils.equals(task.getId(), fakeMigratonTask.getId())) {
                 realMigrationTaskList.add(task);
             } else {
                 foundFakeTask = true;
             }
         }
-        project.getEmfProject().getMigrationTask().removeAll(realMigrationTaskList);
+        project.getEmfProject().getMigrationTask().clear();
         if (!foundFakeTask) {
             project.getEmfProject().getMigrationTask().add(fakeMigratonTask);
         }
