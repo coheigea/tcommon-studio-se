@@ -39,8 +39,6 @@ public interface ITaCoKitService {
 
     boolean isTaCoKitCar(File file, IProgressMonitor monitor) throws Exception;
 
-    void checkMigration(final IProgressMonitor monitor) throws Exception;
-
     public static ITaCoKitService getInstance() throws Exception {
         BundleContext bc = FrameworkUtil.getBundle(ITaCoKitService.class).getBundleContext();
         Collection<ServiceReference<ITaCoKitService>> tacokitServices = Collections.emptyList();
