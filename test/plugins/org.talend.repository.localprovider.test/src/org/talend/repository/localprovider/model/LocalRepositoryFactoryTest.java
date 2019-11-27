@@ -41,11 +41,13 @@ import org.talend.core.model.metadata.builder.connection.ConnectionFactory;
 import org.talend.core.model.metadata.builder.connection.DatabaseConnection;
 import org.talend.core.model.properties.DatabaseConnectionItem;
 import org.talend.core.model.properties.FolderItem;
+import org.talend.core.model.properties.MigrationTask;
 import org.talend.core.model.properties.ProcessItem;
 import org.talend.core.model.properties.PropertiesFactory;
 import org.talend.core.model.properties.Property;
 import org.talend.core.model.properties.RoutineItem;
 import org.talend.core.model.properties.User;
+import org.talend.core.model.properties.impl.MigrationTaskImpl;
 import org.talend.core.model.repository.ERepositoryObjectType;
 import org.talend.core.model.repository.Folder;
 import org.talend.core.model.repository.IRepositoryViewObject;
@@ -1154,5 +1156,30 @@ public class LocalRepositoryFactoryTest extends BaseRepositoryTest {
         // check File Not Exists
         checkFileNotExists(project, ERepositoryObjectType.METADATA_CONNECTIONS, "", "myJob", VersionUtils.DEFAULT_VERSION);
 
+    }
+
+    @Test
+    public void testSaveMigrationTasks() throws PersistenceException, CoreException, LoginException {
+        repositoryFactory.logOnProject(sampleProject);
+        sampleProject.getEmfProject().getMigrationTask().clear();
+
+        String testTaskId = "test.task";
+        MigrationTask migrationTask1 = PropertiesFactory.eINSTANCE.createMigrationTask();
+        migrationTask1.setId(testTaskId);
+        MigrationTask migrationTask2 = PropertiesFactory.eINSTANCE.createMigrationTask();
+
+        sampleProject.getEmfProject().getMigrationTask().add(migrationTask1);
+        sampleProject.getEmfProject().getMigrationTask().add(migrationTask2);
+
+        repositoryFactory.saveProject(sampleProject);
+
+        repositoryFactory.reloadProject(sampleProject);
+
+        // there must be one task
+        assertEquals(1, sampleProject.getEmfProject().getMigrationTask().size());
+
+        MigrationTask task = (MigrationTask) sampleProject.getEmfProject().getMigrationTask().get(0);
+        // id should be equal
+        assertEquals(testTaskId, task.getId());
     }
 }
