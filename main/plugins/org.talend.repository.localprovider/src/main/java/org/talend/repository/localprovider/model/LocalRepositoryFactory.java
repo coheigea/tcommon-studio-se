@@ -1726,7 +1726,7 @@ public class LocalRepositoryFactory extends AbstractEMFRepositoryFactory impleme
      * @param version
      * @param fromEmptyRecycleBin
      * @param isDeleteOnRemote
-     * @param aviodSave for batch delete, save later.
+     * @param aviodSave - For batch delete, save relations and project later at one time.
      * @throws PersistenceException
      */
     protected void deleteObjectPhysical(Project project, IRepositoryViewObject objToDelete, String version,
@@ -1806,12 +1806,14 @@ public class LocalRepositoryFactory extends AbstractEMFRepositoryFactory impleme
     }
 
     @Override
-    public void batchDeleteObjectPhysical(Project project, List<IRepositoryViewObject> objToDeleteList, boolean isDeleteOnRemote)
-            throws PersistenceException {
+    public void batchDeleteObjectPhysical(Project project, List<IRepositoryViewObject> objToDeleteList,
+            boolean isDeleteAllVersion, boolean isDeleteOnRemote) throws PersistenceException {
         for (IRepositoryViewObject object : objToDeleteList) {
-            deleteObjectPhysical(project, object, null, false, isDeleteOnRemote, true);
+            deleteObjectPhysical(project, object, isDeleteAllVersion == true ? null : object.getProperty().getVersion(), false,
+                    isDeleteOnRemote, true);
         }
         RelationshipItemBuilder relationsBuilder = RelationshipItemBuilder.getInstance();
+        // there is save project in the saveRelations, won't save project again here
         relationsBuilder.saveRelations();
     }
 
