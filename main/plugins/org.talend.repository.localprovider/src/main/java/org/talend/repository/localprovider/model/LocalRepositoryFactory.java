@@ -29,6 +29,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.commons.collections.keyvalue.MultiKey;
 import org.apache.commons.lang.StringUtils;
@@ -901,6 +902,20 @@ public class LocalRepositoryFactory extends AbstractEMFRepositoryFactory impleme
 
         xmiResourceManager.saveResource(projectResource);
         project.getEmfProject().getMigrationTask().addAll(realMigrationTaskList);
+
+        // get all of tasks
+        List<MigrationTask> tasks = project.getEmfProject().getMigrationTask();
+
+        // filter out illegal migration task entries
+        List<MigrationTask> FilteredTasks = tasks.stream().filter((e) -> {
+            MigrationTask task = (MigrationTask) e;
+            return task.getId() != null;
+        }).collect(Collectors.toList());
+
+        // set filtered tasks back
+        project.getEmfProject().getMigrationTask().clear();
+        project.getEmfProject().getMigrationTask().addAll(FilteredTasks);
+
         ProjectDataJsonProvider.saveProjectData(project.getEmfProject());
     }
 
