@@ -12,6 +12,7 @@
 // ============================================================================
 package org.talend.librariesmanager.prefs;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,10 +20,13 @@ import java.util.Set;
 
 import org.eclipse.core.runtime.Platform;
 import org.talend.core.GlobalServiceRegister;
+import org.talend.core.ILibraryManagerService;
 import org.talend.core.language.ECodeLanguage;
 import org.talend.core.model.general.ModuleNeeded;
 import org.talend.core.model.general.ModuleNeeded.ELibraryInstallStatus;
 import org.talend.core.model.process.INode;
+import org.talend.core.nexus.ArtifactRepositoryBean;
+import org.talend.core.nexus.TalendLibsServerManager;
 import org.talend.designer.core.IDesignerCoreService;
 import org.talend.librariesmanager.model.ModulesNeededProvider;
 
@@ -95,6 +99,9 @@ public class LibrariesManagerUtils {
         }
 
         for (ModuleNeeded module : nodeModulesList) {
+            if ("tLibraryLoad".equals(node.getComponent().getName())) {
+                getRealStatus(module);
+            }
             if (!module.isDynamic() && module.getStatus() == ELibraryInstallStatus.NOT_INSTALLED
                     && module.isRequired(node.getElementParameters())) {
                 updatedModules.add(module);
@@ -102,5 +109,23 @@ public class LibrariesManagerUtils {
 
         }
         return updatedModules;
+    }
+
+    private static void getRealStatus(ModuleNeeded module) {
+        if (module == null) {
+            return;
+        }
+        File resolvedJar = null;
+        // check from customer nexus
+        ArtifactRepositoryBean customNexusServer = TalendLibsServerManager.getInstance().getCustomNexusServer();
+        if (customNexusServer != null) {
+            try {
+                ILibraryManagerService libManager = (ILibraryManagerService) GlobalServiceRegister.getDefault()
+                        .getService(ILibraryManagerService.class);
+                resolvedJar = libManager.resolveJar(customNexusServer, module.getMavenUri());
+            } catch (Exception e) {
+
+            }
+        }
     }
 }
