@@ -1166,6 +1166,7 @@ public class LocalRepositoryFactoryTest extends BaseRepositoryTest {
         MigrationTask migrationTask1 = PropertiesFactory.eINSTANCE.createMigrationTask();
         migrationTask1.setId(testTaskId);
         MigrationTask migrationTask2 = PropertiesFactory.eINSTANCE.createMigrationTask();
+        migrationTask2.setId(null);
 
         sampleProject.getEmfProject().getMigrationTask().add(migrationTask1);
         sampleProject.getEmfProject().getMigrationTask().add(migrationTask2);
@@ -1174,11 +1175,26 @@ public class LocalRepositoryFactoryTest extends BaseRepositoryTest {
 
         repositoryFactory.reloadProject(sampleProject);
 
-        // there must be one task
-        assertEquals(1, sampleProject.getEmfProject().getMigrationTask().size());
+        // the null id task should be there
 
-        MigrationTask task = (MigrationTask) sampleProject.getEmfProject().getMigrationTask().get(0);
-        // id should be equal
-        assertEquals(testTaskId, task.getId());
+        List<MigrationTask> tasks = sampleProject.getEmfProject().getMigrationTask();
+        assertTrue(tasks.size() > 0);
+
+        // id is not null should be there
+        boolean task1Exist = false;
+        boolean task2Exist = false;
+        for (MigrationTask task : tasks) {
+            if (task.getId().equals(testTaskId)) {
+                task1Exist = true;
+            }
+            if (task.getId() == null) {
+                task2Exist = true;
+            }
+        }
+
+        // task1 should exist
+        assertTrue(task1Exist);
+        // task2 should not exist
+        assertTrue(!task2Exist);
     }
 }
