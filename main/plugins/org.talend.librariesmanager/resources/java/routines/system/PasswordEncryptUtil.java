@@ -35,8 +35,6 @@ import org.talend.daikon.crypto.KeySource;
  */
 public class PasswordEncryptUtil {
 
-    public static final String ENCRYPT_KEY = "Encrypt"; //$NON-NLS-1$
-
     private static final String PREFIX_PASSWORD = "enc:"; //$NON-NLS-1$
 
     private static final String SEPARATOR_PASSWORD = ":";

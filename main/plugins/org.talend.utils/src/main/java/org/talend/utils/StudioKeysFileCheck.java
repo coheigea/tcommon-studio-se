@@ -24,8 +24,6 @@ public class StudioKeysFileCheck {
 
     public static final String ENCRYPTION_KEY_FILE_SYS_PROP = "encryption.keys.file";
 
-    public static final String ENCRYPTION_KEY_FILE_SYS_PROP_PARAM = "-D" + ENCRYPTION_KEY_FILE_SYS_PROP;
-
     public static final String ENCRYPTION_KEY_FILE_NAME = "studio.keys";
 
     private static final Logger LOGGER = Logger.getLogger(StudioKeysFileCheck.class);
