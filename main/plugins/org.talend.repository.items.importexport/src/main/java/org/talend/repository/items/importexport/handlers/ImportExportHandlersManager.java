@@ -796,6 +796,7 @@ public class ImportExportHandlersManager {
                                 final ResourcesManager manager, final ImportItem[] allPopulatedImportItemRecords,
                                 final List<ImportItem> processingItemRecords, final Set<String> overwriteDeletedItems,
                                 final Set<String> idDeletedBeforeImport) {
+                            monitor.subTask(Messages.getString("ImportExportHandlersManager_overrideDelete")); //$NON-NLS-1$
                             // Boolean - isDeleteOnRemote, List<IRepositoryViewObject> - object physical delete list
                             Map<Boolean, List<IRepositoryViewObject>> physicalDeleteHM = new HashMap<Boolean, List<IRepositoryViewObject>>();
                             physicalDeleteHM.put(true, new ArrayList<IRepositoryViewObject>());
@@ -806,7 +807,9 @@ public class ImportExportHandlersManager {
                                     overwriteDeletedItems, idDeletedBeforeImport, physicalDeleteHM);
 
                             for (Boolean key : physicalDeleteHM.keySet()) {
-                                doForceDeleteObjectPhysical(physicalDeleteHM.get(key), key);
+                                if (!physicalDeleteHM.get(key).isEmpty()) {
+                                    doForceDeleteObjectPhysical(physicalDeleteHM.get(key), key);
+                                }
                             }
 
                         }
@@ -814,7 +817,7 @@ public class ImportExportHandlersManager {
                         private void doForceDeleteObjectPhysical(final List<IRepositoryViewObject> ObjectDeleteList,
                                 final boolean isDeleteOnRemote) {
                             RepositoryWorkUnit repositoryWorkUnit = new RepositoryWorkUnit(
-                                    Messages.getString("ImportExportHandlersManager_deletingItemsMessage")) {
+                                    Messages.getString("ImportExportHandlersManager_deletingItemsMessage")) { //$NON-NLS-1$
 
                                 @Override
                                 public void run() throws PersistenceException {
